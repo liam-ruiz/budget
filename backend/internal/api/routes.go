@@ -27,6 +27,7 @@ func (h *Handler) Routes() http.Handler {
 		r.Post("/budgets", h.CreateBudget)
 		r.Get("/budgets", h.GetBudgets)
 		r.Post("/plaid/exchange", h.ExchangePlaidPublicToken)
+		r.Post("/plaid/link-token", h.CreateLinkToken)
 	})
 
 	return r
@@ -36,6 +37,7 @@ func (h *Handler) Routes() http.Handler {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

@@ -7,43 +7,45 @@ import (
 	"github.com/google/uuid"
 )
 
-// BankAccount represents a Plaid-linked bank account.
+// BankAccount represents a bank account linked via Plaid.
 type BankAccount struct {
-	ID               uuid.UUID    `json:"id"`
-	UserID           uuid.UUID    `json:"user_id"`
-	PlaidItemID      string       `json:"-"`
-	PlaidAccessToken string       `json:"-"`
-	InstitutionName  string       `json:"institution_name"`
-	AccountName      string       `json:"account_name"`
-	AccountType      string       `json:"account_type"`
-	CurrentBalance   string       `json:"current_balance"`
-	AvailableBalance string       `json:"available_balance"`
-	LastSyncedAt     sql.NullTime `json:"last_synced_at"`
+	ID               uuid.UUID      `json:"id"`
+	ItemID           uuid.UUID      `json:"item_id"`
+	PlaidAccountID   string         `json:"-"`
+	AccountName      string         `json:"account_name"`
+	OfficialName     sql.NullString `json:"official_name"`
+	AccountType      string         `json:"account_type"`
+	AccountSubtype   sql.NullString `json:"account_subtype"`
+	CurrentBalance   string         `json:"current_balance"`
+	AvailableBalance string         `json:"available_balance"`
+	IsoCurrencyCode  string         `json:"iso_currency_code"`
+	UpdatedAt        time.Time      `json:"updated_at"`
 }
 
 // AccountResponse is the JSON-safe view sent to clients.
 type AccountResponse struct {
-	ID               uuid.UUID  `json:"id"`
-	InstitutionName  string     `json:"institution_name"`
-	AccountName      string     `json:"account_name"`
-	AccountType      string     `json:"account_type"`
-	CurrentBalance   string     `json:"current_balance"`
-	AvailableBalance string     `json:"available_balance"`
-	LastSyncedAt     *time.Time `json:"last_synced_at"`
+	ID               uuid.UUID `json:"id"`
+	InstitutionName  string    `json:"institution_name,omitempty"`
+	AccountName      string    `json:"account_name"`
+	AccountType      string    `json:"account_type"`
+	AccountSubtype   string    `json:"account_subtype,omitempty"`
+	CurrentBalance   string    `json:"current_balance"`
+	AvailableBalance string    `json:"available_balance"`
+	IsoCurrencyCode  string    `json:"iso_currency_code"`
 }
 
 func ToAccountResponse(a BankAccount) AccountResponse {
-	var synced *time.Time
-	if a.LastSyncedAt.Valid {
-		synced = &a.LastSyncedAt.Time
+	subtype := ""
+	if a.AccountSubtype.Valid {
+		subtype = a.AccountSubtype.String
 	}
 	return AccountResponse{
 		ID:               a.ID,
-		InstitutionName:  a.InstitutionName,
 		AccountName:      a.AccountName,
 		AccountType:      a.AccountType,
+		AccountSubtype:   subtype,
 		CurrentBalance:   a.CurrentBalance,
 		AvailableBalance: a.AvailableBalance,
-		LastSyncedAt:     synced,
+		IsoCurrencyCode:  a.IsoCurrencyCode,
 	}
 }

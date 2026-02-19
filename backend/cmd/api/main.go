@@ -13,7 +13,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-
+    log.Println("Starting application on port", cfg.Port)
     if err := app.Run(cfg); err != nil {
         log.Fatal("Application failed: ", err)
     }

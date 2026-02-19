@@ -17,7 +17,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-// GetAccounts returns all linked accounts for a user.
+// GetAccounts returns all bank accounts for a user.
 func (s *Service) GetAccounts(ctx context.Context, userID uuid.UUID) ([]AccountResponse, error) {
 	accounts, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
@@ -30,7 +30,12 @@ func (s *Service) GetAccounts(ctx context.Context, userID uuid.UUID) ([]AccountR
 	return out, nil
 }
 
-// CreateAccount creates a new linked bank account.
-func (s *Service) CreateAccount(ctx context.Context, params sqlcdb.CreateLinkedAccountParams) (BankAccount, error) {
-	return s.repo.Create(ctx, params)
+// CreatePlaidItem persists a new Plaid item (connection).
+func (s *Service) CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePlaidItemParams) (sqlcdb.PlaidItem, error) {
+	return s.repo.CreatePlaidItem(ctx, params)
+}
+
+// CreateBankAccount creates a new bank account under a Plaid item.
+func (s *Service) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error) {
+	return s.repo.CreateBankAccount(ctx, params)
 }

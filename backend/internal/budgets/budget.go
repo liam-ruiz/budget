@@ -10,7 +10,7 @@ import (
 // Budget represents a spending budget for a category.
 type Budget struct {
 	ID          uuid.UUID    `json:"id"`
-	UserID      uuid.UUID    `json:"user_id"`
+	AppUserID   uuid.UUID    `json:"user_id"`
 	Category    string       `json:"category"`
 	LimitAmount string       `json:"limit_amount"`
 	Period      string       `json:"period"`
@@ -39,7 +39,7 @@ func ToBudgetResponse(b Budget) BudgetResponse {
 	}
 	return BudgetResponse{
 		ID:          b.ID,
-		UserID:      b.UserID,
+		UserID:      b.AppUserID,
 		Category:    b.Category,
 		LimitAmount: b.LimitAmount,
 		Period:      b.Period,

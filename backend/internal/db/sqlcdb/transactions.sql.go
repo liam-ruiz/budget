@@ -16,31 +16,31 @@ const createTransaction = `-- name: CreateTransaction :one
 INSERT INTO
     transactions (
         account_id,
-        date,
-        name,
+        transaction_date,
+        transaction_name,
         category,
         amount,
         pending
     )
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING
-    id, account_id, date, name, category, amount, pending, created_at
+    id, account_id, transaction_date, transaction_name, category, amount, pending, created_at
 `
 
 type CreateTransactionParams struct {
-	AccountID uuid.UUID
-	Date      time.Time
-	Name      string
-	Category  string
-	Amount    string
-	Pending   bool
+	AccountID       uuid.UUID
+	TransactionDate time.Time
+	TransactionName string
+	Category        string
+	Amount          string
+	Pending         bool
 }
 
 func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
 	row := q.db.QueryRowContext(ctx, createTransaction,
 		arg.AccountID,
-		arg.Date,
-		arg.Name,
+		arg.TransactionDate,
+		arg.TransactionName,
 		arg.Category,
 		arg.Amount,
 		arg.Pending,
@@ -49,8 +49,8 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.Date,
-		&i.Name,
+		&i.TransactionDate,
+		&i.TransactionName,
 		&i.Category,
 		&i.Amount,
 		&i.Pending,
@@ -60,7 +60,11 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 }
 
 const getTransactionsByAccountID = `-- name: GetTransactionsByAccountID :many
-SELECT id, account_id, date, name, category, amount, pending, created_at FROM transactions WHERE account_id = $1 ORDER BY date DESC
+SELECT id, account_id, transaction_date, transaction_name, category, amount, pending, created_at
+FROM transactions
+WHERE
+    account_id = $1
+ORDER BY transaction_date DESC
 `
 
 func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid.UUID) ([]Transaction, error) {
@@ -75,8 +79,8 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.Date,
-			&i.Name,
+			&i.TransactionDate,
+			&i.TransactionName,
 			&i.Category,
 			&i.Amount,
 			&i.Pending,
@@ -96,13 +100,14 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, accountID uuid
 }
 
 const getTransactionsByUserID = `-- name: GetTransactionsByUserID :many
-SELECT t.id, t.account_id, t.date, t.name, t.category, t.amount, t.pending, t.created_at
+SELECT t.id, t.account_id, t.transaction_date, t.transaction_name, t.category, t.amount, t.pending, t.created_at
 FROM
     transactions t
-    JOIN linked_accounts la ON t.account_id = la.id
+    JOIN bank_accounts ba ON t.account_id = ba.id
+    JOIN plaid_items pi ON ba.item_id = pi.id
 WHERE
-    la.user_id = $1
-ORDER BY t.date DESC
+    pi.user_id = $1
+ORDER BY t.transaction_date DESC
 `
 
 func (q *Queries) GetTransactionsByUserID(ctx context.Context, userID uuid.UUID) ([]Transaction, error) {
@@ -117,8 +122,8 @@ func (q *Queries) GetTransactionsByUserID(ctx context.Context, userID uuid.UUID)
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.Date,
-			&i.Name,
+			&i.TransactionDate,
+			&i.TransactionName,
 			&i.Category,
 			&i.Amount,
 			&i.Pending,
@@ -141,8 +146,8 @@ const upsertTransaction = `-- name: UpsertTransaction :one
 INSERT INTO
     transactions (
         account_id,
-        date,
-        name,
+        transaction_date,
+        transaction_name,
         category,
         amount,
         pending
@@ -151,29 +156,29 @@ VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (id) DO
 UPDATE
 SET
-    date = EXCLUDED.date,
-    name = EXCLUDED.name,
+    transaction_date = EXCLUDED.transaction_date,
+    transaction_name = EXCLUDED.transaction_name,
     category = EXCLUDED.category,
     amount = EXCLUDED.amount,
     pending = EXCLUDED.pending
 RETURNING
-    id, account_id, date, name, category, amount, pending, created_at
+    id, account_id, transaction_date, transaction_name, category, amount, pending, created_at
 `
 
 type UpsertTransactionParams struct {
-	AccountID uuid.UUID
-	Date      time.Time
-	Name      string
-	Category  string
-	Amount    string
-	Pending   bool
+	AccountID       uuid.UUID
+	TransactionDate time.Time
+	TransactionName string
+	Category        string
+	Amount          string
+	Pending         bool
 }
 
 func (q *Queries) UpsertTransaction(ctx context.Context, arg UpsertTransactionParams) (Transaction, error) {
 	row := q.db.QueryRowContext(ctx, upsertTransaction,
 		arg.AccountID,
-		arg.Date,
-		arg.Name,
+		arg.TransactionDate,
+		arg.TransactionName,
 		arg.Category,
 		arg.Amount,
 		arg.Pending,
@@ -182,8 +187,8 @@ func (q *Queries) UpsertTransaction(ctx context.Context, arg UpsertTransactionPa
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.Date,
-		&i.Name,
+		&i.TransactionDate,
+		&i.TransactionName,
 		&i.Category,
 		&i.Amount,
 		&i.Pending,

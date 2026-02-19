@@ -51,8 +51,8 @@ func toTransaction(row sqlcdb.Transaction) Transaction {
 	return Transaction{
 		ID:        row.ID,
 		AccountID: row.AccountID,
-		Date:      row.Date,
-		Name:      row.Name,
+		Date:      row.TransactionDate,
+		Name:      row.TransactionName,
 		Category:  row.Category,
 		Amount:    row.Amount,
 		Pending:   row.Pending,

@@ -1,18 +1,24 @@
 package app
 
 import (
-    "database/sql"
-    "net/http"
+	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/liam-ruiz/budget/internal/api"
-    "github.com/liam-ruiz/budget/internal/bank_accounts"
-    "github.com/liam-ruiz/budget/internal/budgets"
-    "github.com/liam-ruiz/budget/internal/config"
-    "github.com/liam-ruiz/budget/internal/db/sqlcdb"
-    "github.com/liam-ruiz/budget/internal/plaid"
-    "github.com/liam-ruiz/budget/internal/transactions"
-    "github.com/liam-ruiz/budget/internal/users"
+	"github.com/liam-ruiz/budget/internal/bank_accounts"
+	"github.com/liam-ruiz/budget/internal/budgets"
+	"github.com/liam-ruiz/budget/internal/config"
 	"github.com/liam-ruiz/budget/internal/context"
+	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
+	"github.com/liam-ruiz/budget/internal/plaid"
+	"github.com/liam-ruiz/budget/internal/transactions"
+	"github.com/liam-ruiz/budget/internal/users"
 ) 
 
 type repositories struct {
@@ -38,6 +44,13 @@ func Run(cfg *config.Config) error {
 
     queries := sqlcdb.New(db)
 
+	// reset database if requested 
+	if cfg.ResetDB {
+		if err := resetDatabase(db); err != nil {
+			return fmt.Errorf("failed to reset database: %w", err)
+		}
+	}
+
     // Build the container
     cont := &context.Container{
         Cfg:         cfg,
@@ -53,6 +66,7 @@ func Run(cfg *config.Config) error {
     // Now NewHandler only takes the container
     handler := api.NewHandler(cont)
 
+	log.Println("Application Started.")
     return http.ListenAndServe(":"+cfg.Port, handler.Routes())
 }
 
@@ -61,20 +75,51 @@ func initDB(dbUrl string) (*sql.DB, error) {
     return db, err
 }
 
-func initRepositories(q *sqlcdb.Queries) repositories {
-    return repositories{
-        User: users.NewRepository(q),
-        Account: bank_accounts.NewRepository(q),
-        Budget: budgets.NewRepository(q),
-        Transaction: transactions.NewRepository(q),
+func runMigrations(db *sql.DB) error {
+    driver, err := postgres.WithInstance(db, &postgres.Config{})
+    if err != nil {
+        return err
     }
+    
+    // Path to your migration files (relative to the binary)
+    m, err := migrate.NewWithDatabaseInstance(
+        "file://internal/db/migrations",
+        "postgres", driver)
+    if err != nil {
+        return err
+    }
+
+    // Apply all "up" migrations
+    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+        return err
+    }
+    return nil
 }
 
-func initServices(repos repositories) services {
-    return services{
-        User: users.NewService(repos.User),
-        Account: bank_accounts.NewService(repos.Account),
-        Budget: budgets.NewService(repos.Budget),
-        Transaction: transactions.NewService(repos.Transaction),
+func resetDatabase(db *sql.DB) error {
+    driver, err := postgres.WithInstance(db, &postgres.Config{})
+    if err != nil {
+        return err
     }
+
+    m, err := migrate.NewWithDatabaseInstance(
+        "file://internal/db/migrations",
+        "postgres", driver)
+    if err != nil {
+        return err
+    }
+
+    // 1. Rollback all migrations
+    // This will execute every .down.sql file
+    if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+        return fmt.Errorf("failed to roll back: %w", err)
+    }
+
+    // 2. Re-apply all migrations
+    // This will execute every .up.sql file
+    if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+        return fmt.Errorf("failed to re-apply: %w", err)
+    }
+
+    return nil
 }

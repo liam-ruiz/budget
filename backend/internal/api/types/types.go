@@ -2,7 +2,6 @@ package types
 
 import "github.com/google/uuid"
 
-
 // AuthRequest is used for both login and registration.
 type AuthRequest struct {
 	Email    string `json:"email"`
@@ -20,7 +19,6 @@ type UserResponse struct {
 	ID    uuid.UUID `json:"id"`
 	Email string    `json:"email"`
 }
-
 
 // CreateBudgetRequest is the payload for creating a new budget.
 type CreateBudgetRequest struct {
@@ -41,12 +39,16 @@ type ExchangeTokenRequest struct {
 	AccountType     string `json:"account_type"`
 }
 
+// CreateLinkTokenResponse is returned when a Plaid link token is created.
+type CreateLinkTokenResponse struct {
+	LinkToken string `json:"link_token"`
+}
+
 // ExchangeTokenResponse is returned after a successful Plaid token exchange.
 type ExchangeTokenResponse struct {
 	AccountID uuid.UUID `json:"account_id"`
 	ItemID    string    `json:"item_id"`
 }
-
 
 // ErrorResponse is returned on any handler error.
 type ErrorResponse struct {

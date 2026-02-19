@@ -59,10 +59,10 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 func toBudget(row sqlcdb.Budget) Budget {
 	return Budget{
 		ID:          row.ID,
-		UserID:      row.UserID,
+		AppUserID:   row.AppUserID,
 		Category:    row.Category,
 		LimitAmount: row.LimitAmount,
-		Period:      row.Period,
+		Period:      row.BudgetPeriod,
 		StartDate:   row.StartDate,
 		EndDate:     row.EndDate,
 		CreatedAt:   row.CreatedAt,

@@ -11,39 +11,52 @@ import (
 	"github.com/google/uuid"
 )
 
-type Budget struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	Category    string
-	LimitAmount string
-	Period      string
-	StartDate   time.Time
-	EndDate     sql.NullTime
-	CreatedAt   time.Time
+type BankAccount struct {
+	ID               uuid.UUID
+	ItemID           uuid.UUID
+	PlaidAccountID   string
+	AccountName      string
+	OfficialName     sql.NullString
+	AccountType      string
+	AccountSubtype   sql.NullString
+	CurrentBalance   string
+	AvailableBalance string
+	IsoCurrencyCode  string
+	UpdatedAt        time.Time
 }
 
-type LinkedAccount struct {
+type Budget struct {
+	ID           uuid.UUID
+	AppUserID    uuid.UUID
+	Category     string
+	LimitAmount  string
+	BudgetPeriod string
+	StartDate    time.Time
+	EndDate      sql.NullTime
+	CreatedAt    time.Time
+}
+
+type PlaidItem struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID
 	PlaidItemID      string
 	PlaidAccessToken string
 	InstitutionName  string
-	AccountName      string
-	AccountType      string
-	CurrentBalance   string
-	AvailableBalance string
+	PlaidCursor      sql.NullString
 	LastSyncedAt     sql.NullTime
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type Transaction struct {
-	ID        uuid.UUID
-	AccountID uuid.UUID
-	Date      time.Time
-	Name      string
-	Category  string
-	Amount    string
-	Pending   bool
-	CreatedAt time.Time
+	ID              uuid.UUID
+	AccountID       uuid.UUID
+	TransactionDate time.Time
+	TransactionName string
+	Category        string
+	Amount          string
+	Pending         bool
+	CreatedAt       time.Time
 }
 
 type User struct {

@@ -1,0 +1,18 @@
+.table-card {
+    overflow-x: auto;
+}
+
+.txn-name-cell {
+    color: var(--text-primary) !important;
+    font-weight: 500;
+}
+
+.txn-amount {
+    font-weight: 600;
+    color: var(--success) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.txn-amount.negative {
+    color: var(--danger) !important;
+}

@@ -9,11 +9,13 @@ import (
 
 // Repository defines the interface for bank account data access.
 type Repository interface {
-	Create(ctx context.Context, params sqlcdb.CreateLinkedAccountParams) (BankAccount, error)
+	CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePlaidItemParams) (sqlcdb.PlaidItem, error)
+	CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankAccount, error)
 	GetByID(ctx context.Context, id uuid.UUID) (BankAccount, error)
-	GetByPlaidItemID(ctx context.Context, plaidItemID string) (BankAccount, error)
-	UpdateBalance(ctx context.Context, params sqlcdb.UpdateAccountBalanceParams) error
+	GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error)
+	GetPlaidItemByPlaidItemID(ctx context.Context, plaidItemID string) (sqlcdb.PlaidItem, error)
+	UpdateBalance(ctx context.Context, params sqlcdb.UpdateBankAccountBalanceParams) error
 }
 
 type repository struct {
@@ -25,8 +27,12 @@ func NewRepository(q *sqlcdb.Queries) Repository {
 	return &repository{q: q}
 }
 
-func (r *repository) Create(ctx context.Context, params sqlcdb.CreateLinkedAccountParams) (BankAccount, error) {
-	row, err := r.q.CreateLinkedAccount(ctx, params)
+func (r *repository) CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePlaidItemParams) (sqlcdb.PlaidItem, error) {
+	return r.q.CreatePlaidItem(ctx, params)
+}
+
+func (r *repository) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error) {
+	row, err := r.q.CreateBankAccount(ctx, params)
 	if err != nil {
 		return BankAccount{}, err
 	}
@@ -34,7 +40,7 @@ func (r *repository) Create(ctx context.Context, params sqlcdb.CreateLinkedAccou
 }
 
 func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankAccount, error) {
-	rows, err := r.q.GetLinkedAccountsByUserID(ctx, userID)
+	rows, err := r.q.GetBankAccountsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -46,36 +52,41 @@ func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankA
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (BankAccount, error) {
-	row, err := r.q.GetLinkedAccountByID(ctx, id)
+	row, err := r.q.GetBankAccountByID(ctx, id)
 	if err != nil {
 		return BankAccount{}, err
 	}
 	return toBankAccount(row), nil
 }
 
-func (r *repository) GetByPlaidItemID(ctx context.Context, plaidItemID string) (BankAccount, error) {
-	row, err := r.q.GetLinkedAccountByPlaidItemID(ctx, plaidItemID)
+func (r *repository) GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error) {
+	row, err := r.q.GetBankAccountByPlaidAccountID(ctx, plaidAccountID)
 	if err != nil {
 		return BankAccount{}, err
 	}
 	return toBankAccount(row), nil
 }
 
-func (r *repository) UpdateBalance(ctx context.Context, params sqlcdb.UpdateAccountBalanceParams) error {
-	return r.q.UpdateAccountBalance(ctx, params)
+func (r *repository) GetPlaidItemByPlaidItemID(ctx context.Context, plaidItemID string) (sqlcdb.PlaidItem, error) {
+	return r.q.GetPlaidItemByPlaidItemID(ctx, plaidItemID)
 }
 
-func toBankAccount(row sqlcdb.LinkedAccount) BankAccount {
+func (r *repository) UpdateBalance(ctx context.Context, params sqlcdb.UpdateBankAccountBalanceParams) error {
+	return r.q.UpdateBankAccountBalance(ctx, params)
+}
+
+func toBankAccount(row sqlcdb.BankAccount) BankAccount {
 	return BankAccount{
 		ID:               row.ID,
-		UserID:           row.UserID,
-		PlaidItemID:      row.PlaidItemID,
-		PlaidAccessToken: row.PlaidAccessToken,
-		InstitutionName:  row.InstitutionName,
+		ItemID:           row.ItemID,
+		PlaidAccountID:   row.PlaidAccountID,
 		AccountName:      row.AccountName,
+		OfficialName:     row.OfficialName,
 		AccountType:      row.AccountType,
+		AccountSubtype:   row.AccountSubtype,
 		CurrentBalance:   row.CurrentBalance,
 		AvailableBalance: row.AvailableBalance,
-		LastSyncedAt:     row.LastSyncedAt,
+		IsoCurrencyCode:  row.IsoCurrencyCode,
+		UpdatedAt:        row.UpdatedAt,
 	}
 }

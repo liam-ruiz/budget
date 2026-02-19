@@ -1,10 +1,10 @@
 -- name: CreateBudget :one
 INSERT INTO
     budgets (
-        user_id,
+        app_user_id,
         category,
         limit_amount,
-        period,
+        budget_period,
         start_date,
         end_date
     )
@@ -13,7 +13,7 @@ RETURNING
     *;
 
 -- name: GetBudgetsByUserID :many
-SELECT * FROM budgets WHERE user_id = $1 ORDER BY category;
+SELECT * FROM budgets WHERE app_user_id = $1 ORDER BY category;
 
 -- name: GetBudgetByID :one
 SELECT * FROM budgets WHERE id = $1;

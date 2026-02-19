@@ -16,43 +16,43 @@ import (
 const createBudget = `-- name: CreateBudget :one
 INSERT INTO
     budgets (
-        user_id,
+        app_user_id,
         category,
         limit_amount,
-        period,
+        budget_period,
         start_date,
         end_date
     )
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING
-    id, user_id, category, limit_amount, period, start_date, end_date, created_at
+    id, app_user_id, category, limit_amount, budget_period, start_date, end_date, created_at
 `
 
 type CreateBudgetParams struct {
-	UserID      uuid.UUID
-	Category    string
-	LimitAmount string
-	Period      string
-	StartDate   time.Time
-	EndDate     sql.NullTime
+	AppUserID    uuid.UUID
+	Category     string
+	LimitAmount  string
+	BudgetPeriod string
+	StartDate    time.Time
+	EndDate      sql.NullTime
 }
 
 func (q *Queries) CreateBudget(ctx context.Context, arg CreateBudgetParams) (Budget, error) {
 	row := q.db.QueryRowContext(ctx, createBudget,
-		arg.UserID,
+		arg.AppUserID,
 		arg.Category,
 		arg.LimitAmount,
-		arg.Period,
+		arg.BudgetPeriod,
 		arg.StartDate,
 		arg.EndDate,
 	)
 	var i Budget
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.AppUserID,
 		&i.Category,
 		&i.LimitAmount,
-		&i.Period,
+		&i.BudgetPeriod,
 		&i.StartDate,
 		&i.EndDate,
 		&i.CreatedAt,
@@ -70,7 +70,7 @@ func (q *Queries) DeleteBudget(ctx context.Context, id uuid.UUID) error {
 }
 
 const getBudgetByID = `-- name: GetBudgetByID :one
-SELECT id, user_id, category, limit_amount, period, start_date, end_date, created_at FROM budgets WHERE id = $1
+SELECT id, app_user_id, category, limit_amount, budget_period, start_date, end_date, created_at FROM budgets WHERE id = $1
 `
 
 func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, error) {
@@ -78,10 +78,10 @@ func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, erro
 	var i Budget
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.AppUserID,
 		&i.Category,
 		&i.LimitAmount,
-		&i.Period,
+		&i.BudgetPeriod,
 		&i.StartDate,
 		&i.EndDate,
 		&i.CreatedAt,
@@ -90,11 +90,11 @@ func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, erro
 }
 
 const getBudgetsByUserID = `-- name: GetBudgetsByUserID :many
-SELECT id, user_id, category, limit_amount, period, start_date, end_date, created_at FROM budgets WHERE user_id = $1 ORDER BY category
+SELECT id, app_user_id, category, limit_amount, budget_period, start_date, end_date, created_at FROM budgets WHERE app_user_id = $1 ORDER BY category
 `
 
-func (q *Queries) GetBudgetsByUserID(ctx context.Context, userID uuid.UUID) ([]Budget, error) {
-	rows, err := q.db.QueryContext(ctx, getBudgetsByUserID, userID)
+func (q *Queries) GetBudgetsByUserID(ctx context.Context, appUserID uuid.UUID) ([]Budget, error) {
+	rows, err := q.db.QueryContext(ctx, getBudgetsByUserID, appUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +104,10 @@ func (q *Queries) GetBudgetsByUserID(ctx context.Context, userID uuid.UUID) ([]B
 		var i Budget
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
+			&i.AppUserID,
 			&i.Category,
 			&i.LimitAmount,
-			&i.Period,
+			&i.BudgetPeriod,
 			&i.StartDate,
 			&i.EndDate,
 			&i.CreatedAt,

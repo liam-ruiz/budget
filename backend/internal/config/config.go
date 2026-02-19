@@ -2,8 +2,10 @@
 package config
 
 import (
-    "github.com/joho/godotenv"
+    "strings"
     "os"
+    
+    "github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -13,6 +15,8 @@ type Config struct {
     PlaidSecret   string
     PlaidEnv      string
     Port          string
+    ResetDB       bool
+    AllowedOrigins []string
 }
 
 func Load() (*Config, error) {
@@ -26,6 +30,8 @@ func Load() (*Config, error) {
         PlaidClientID: os.Getenv("PLAID_CLIENT_ID"),
         PlaidSecret:   os.Getenv("PLAID_SECRET"),
         PlaidEnv:      os.Getenv("PLAID_ENV"),
-        Port:          os.Getenv("PORT"),
+        Port:          os.Getenv("BACKEND_PORT"),
+        ResetDB:       os.Getenv("RESET_DB") == "true",
+        AllowedOrigins: strings.Split(os.Getenv("ALLOWED_ORIGINS"), ","),
     }, nil
 }
