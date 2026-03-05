@@ -110,6 +110,70 @@
     <div class="budgets-grid">
         @for (b of budgets(); track b.id) {
         <div class="budget-card card">
+
+            <!-- Delete confirmation overlay -->
+            @if (deletingBudgetId() === b.id) {
+            <div class="delete-overlay animate-in">
+                <p>Delete <strong>{{ b.name }}</strong>?</p>
+                <div class="delete-actions">
+                    <button class="btn btn-ghost" (click)="cancelDelete()">Cancel</button>
+                    <button class="btn btn-danger" (click)="deleteBudget()">Delete</button>
+                </div>
+            </div>
+            }
+
+            <!-- Edit form -->
+            @if (editingBudgetId() === b.id) {
+            <div class="edit-form animate-in">
+                <div class="form-header">
+                    <h2 class="form-title">Edit Budget</h2>
+                </div>
+                <div class="budget-form-grid">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" [(ngModel)]="editForm.name">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select [(ngModel)]="editForm.category">
+                            <option value="">No category</option>
+                            @for (cat of categories; track cat) {
+                            <option [value]="cat">{{ formatCategory(cat) }}</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Spending Limit</label>
+                        <input type="number" step="0.01" min="0.01" [(ngModel)]="editForm.limit_amount">
+                    </div>
+                    <div class="form-group">
+                        <label>Period</label>
+                        <select [(ngModel)]="editForm.period">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="one-time">One-Time</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" [(ngModel)]="editForm.start_date">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" [(ngModel)]="editForm.end_date">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-ghost" (click)="cancelEdit()">Cancel</button>
+                        <button class="btn btn-primary" [disabled]="saving()" (click)="saveEdit()">
+                            {{ saving() ? 'Saving…' : 'Save' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            } @else {
+
+            <!-- Normal card view -->
             <div class="budget-top">
                 <div>
                     <span class="budget-category">{{ b.name }}</span>
@@ -117,7 +181,24 @@
                     <span class="budget-category-label">{{ formatCategory(b.category) }}</span>
                     }
                 </div>
-                <span class="badge badge-accent">{{ b.period }}</span>
+                <div class="budget-actions">
+                    <span class="badge badge-accent">{{ b.period }}</span>
+                    <button class="icon-btn" (click)="startEdit(b)" aria-label="Edit budget" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                        </svg>
+                    </button>
+                    <button class="icon-btn icon-btn-danger" (click)="confirmDelete(b)" aria-label="Delete budget"
+                        title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Amounts row -->
@@ -169,6 +250,7 @@
                 <span> → {{ b.end_date }}</span>
                 }
             </div>
+            }
         </div>
         }
     </div>

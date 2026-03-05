@@ -66,6 +66,16 @@ export interface CreateBudgetRequest {
     end_date?: string;
 }
 
+export interface UpdateBudgetRequest {
+    name?: string;
+    category?: string;
+    limit_amount?: string;
+    period?: string;
+    start_date?: string;
+    end_date?: string;
+    clear_category?: boolean;
+    clear_end_date?: boolean;
+}
 
 // ── Plaid ──
 

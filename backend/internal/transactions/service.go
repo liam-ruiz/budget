@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"github.com/liam-ruiz/budget/internal/util"
 	plaidlib "github.com/plaid/plaid-go/v20/plaid"
 )
+
+var ErrTransactionNotFound = errors.New("transaction not found")
 
 // Service handles transaction business logic.
 type Service struct {
@@ -28,6 +31,21 @@ func NewService(repo Repository) *Service {
 // GetByUser returns all transactions across all linked accounts for a user.
 func (s *Service) GetByUser(ctx context.Context, userID uuid.UUID) ([]TransactionWithAccountName, error) {
 	return s.repo.GetByUserID(ctx, userID)
+}
+
+func (s *Service) DeleteTransaction(ctx context.Context, userID uuid.UUID, plaidTransactionID string) error {
+	transactions, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	for _, transaction := range transactions {
+		if transaction.PlaidTransactionID == plaidTransactionID {
+			return s.repo.Delete(ctx, plaidTransactionID)
+		}
+	}
+
+	return ErrTransactionNotFound
 }
 
 // CreateTransaction persists a single transaction.

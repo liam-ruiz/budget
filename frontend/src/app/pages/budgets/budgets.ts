@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
-import { Budget, CreateBudgetRequest } from '../../models/models';
+import { Budget, CreateBudgetRequest, UpdateBudgetRequest } from '../../models/models';
 
 // Plaid PFCv2 primary categories
 const PLAID_CATEGORIES = [
@@ -48,6 +48,13 @@ export class BudgetsPage implements OnInit {
     showForm: WritableSignal<boolean> = signal(false);
     saving: WritableSignal<boolean> = signal(false);
 
+    // Edit state
+    editingBudgetId: WritableSignal<string | null> = signal(null);
+    editForm: UpdateBudgetRequest = {};
+
+    // Delete confirmation state
+    deletingBudgetId: WritableSignal<string | null> = signal(null);
+
     form: CreateBudgetRequest = {
         name: '',
         limit_amount: '',
@@ -80,12 +87,10 @@ export class BudgetsPage implements OnInit {
             limit_amount: String(this.form.limit_amount),
         };
 
-        // If category is empty string or undefined, remove it so the backend gets null
         if (!payload.category) {
             delete payload.category;
         }
 
-        // ensures end date is set based on period
         this.setEndDate(payload);
 
         this.api.createBudget(payload).subscribe({
@@ -101,7 +106,84 @@ export class BudgetsPage implements OnInit {
         });
     }
 
-    /** Format a category string for display, e.g. "FOOD_AND_DRINK" -> "Food And Drink" */
+    // ── Edit ──
+
+    startEdit(b: Budget) {
+        this.editingBudgetId.set(b.id);
+        this.editForm = {
+            name: b.name,
+            category: b.category ?? '',
+            limit_amount: b.limit_amount,
+            period: b.period,
+            start_date: b.start_date,
+            end_date: b.end_date ?? undefined,
+        };
+    }
+
+    cancelEdit() {
+        this.editingBudgetId.set(null);
+        this.editForm = {};
+    }
+
+    saveEdit() {
+        const id = this.editingBudgetId();
+        if (!id) return;
+
+        this.saving.set(true);
+
+        const payload: UpdateBudgetRequest = { ...this.editForm };
+
+        // Ensure limit_amount is a string
+        if (payload.limit_amount !== undefined) {
+            payload.limit_amount = String(payload.limit_amount);
+        }
+
+        // If category was cleared, signal the backend to null it out
+        if (!payload.category || payload.category === '') {
+            payload.clear_category = true;
+            delete payload.category;
+        }
+
+        this.api.updateBudget(id, payload).subscribe({
+            next: () => {
+                this.saving.set(false);
+                this.editingBudgetId.set(null);
+                this.editForm = {};
+                this.loadBudgets();
+            },
+            error: () => {
+                this.saving.set(false);
+            },
+        });
+    }
+
+    // ── Delete ──
+
+    confirmDelete(b: Budget) {
+        this.deletingBudgetId.set(b.id);
+    }
+
+    cancelDelete() {
+        this.deletingBudgetId.set(null);
+    }
+
+    deleteBudget() {
+        const id = this.deletingBudgetId();
+        if (!id) return;
+
+        this.api.deleteBudget(id).subscribe({
+            next: () => {
+                this.deletingBudgetId.set(null);
+                this.loadBudgets();
+            },
+            error: () => {
+                this.deletingBudgetId.set(null);
+            },
+        });
+    }
+
+    // ── Helpers ──
+
     formatCategory(category: string): string {
         return category
             .split('_')
@@ -151,7 +233,7 @@ export class BudgetsPage implements OnInit {
             endDate.setMonth(endDate.getMonth() + 1);
         } else if (payload.period === 'yearly') {
             endDate.setFullYear(endDate.getFullYear() + 1);
-        } else { // weekly
+        } else {
             endDate.setDate(endDate.getDate() + 7);
         }
 

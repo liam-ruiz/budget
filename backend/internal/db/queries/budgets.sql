@@ -22,6 +22,32 @@ SELECT * FROM budgets WHERE id = $1;
 -- name: DeleteBudget :exec
 DELETE FROM budgets WHERE id = $1;
 
+-- name: UpdateBudget :one
+UPDATE budgets
+SET
+    name = COALESCE(NULLIF($2, ''), name),
+    category = CASE
+        WHEN $3::BOOLEAN THEN $4
+        ELSE category
+    END,
+    limit_amount = CASE
+        WHEN $5::NUMERIC(12, 2) IS NOT NULL THEN $5
+        ELSE limit_amount
+    END,
+    budget_period = COALESCE(NULLIF($6, ''), budget_period),
+    start_date = CASE
+        WHEN $7::DATE IS NOT NULL THEN $7
+        ELSE start_date
+    END,
+    end_date = CASE
+        WHEN $8::BOOLEAN THEN $9
+        ELSE end_date
+    END
+WHERE
+    id = $1
+RETURNING
+    *;
+
 -- name: UpdateBudgetAmountSpent :one
 UPDATE budgets SET amount_spent = $2 WHERE id = $1 RETURNING *;
 

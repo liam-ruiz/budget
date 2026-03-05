@@ -18,6 +18,7 @@ type Repository interface {
 	UpdateBalance(ctx context.Context, params sqlcdb.UpdateBankAccountBalanceParams) error
 	UpsertBankAccount(ctx context.Context, params sqlcdb.UpsertBankAccountParams) (BankAccount, error)
 	UpdateCursor(ctx context.Context, plaidItemID string, cursor string) error
+	Delete(ctx context.Context, plaidAccountID string) error
 }
 
 type repository struct {
@@ -61,7 +62,6 @@ func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankA
 	return accounts, nil
 }
 
-
 func (r *repository) GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error) {
 	row, err := r.q.GetBankAccountByPlaidAccountID(ctx, plaidAccountID)
 	if err != nil {
@@ -101,3 +101,6 @@ func (r *repository) UpdateCursor(ctx context.Context, plaidItemID string, curso
 	})
 }
 
+func (r *repository) Delete(ctx context.Context, plaidAccountID string) error {
+	return r.q.DeleteBankAccount(ctx, plaidAccountID)
+}

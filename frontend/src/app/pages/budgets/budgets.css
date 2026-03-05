@@ -10,8 +10,9 @@
 .form-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     margin-bottom: 1.25rem;
+    min-height: 32px;
 }
 
 .form-header .form-title {
@@ -44,6 +45,21 @@
     color: var(--text-primary);
 }
 
+.budget-form,
+.edit-form {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
+}
+
+.budget-form .close-btn,
+.edit-form .close-btn {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+}
+
 .budget-form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -72,6 +88,10 @@
 }
 
 .budget-card {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
     transition: border-color 0.2s, transform 0.2s;
 }
 
@@ -201,4 +221,107 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
+}
+
+/* ── Card Action Buttons ── */
+
+.budget-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.icon-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.icon-btn-danger:hover {
+    color: var(--danger);
+}
+
+/* ── Delete Confirmation Overlay ── */
+
+.delete-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    border-radius: inherit;
+    z-index: 2;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.delete-overlay p {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.delete-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.btn-danger {
+    background: var(--danger);
+    border: none;
+    color: #fff;
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+    filter: brightness(1.15);
+}
+
+/* ── Edit Form ── */
+
+.edit-form {
+    padding: 0.25rem;
+}
+
+.edit-form .form-actions {
+    gap: 0.5rem;
 }

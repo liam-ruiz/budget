@@ -38,13 +38,35 @@
     <div class="accounts-grid">
         @for (acct of accounts(); track acct.account_id) {
         <div class="account-card card">
+            @if (deletingAccountId() === acct.account_id) {
+            <div class="delete-overlay animate-in">
+                <p>Delete <strong>{{ acct.account_name }}</strong>?</p>
+                <p class="delete-copy">This also removes its synced transactions.</p>
+                <div class="delete-actions">
+                    <button class="btn btn-ghost" type="button" (click)="cancelDelete()">Cancel</button>
+                    <button class="btn btn-danger" type="button" [disabled]="deleting()" (click)="deleteAccount()">
+                        {{ deleting() ? 'Deleting…' : 'Delete' }}
+                    </button>
+                </div>
+            </div>
+            }
+            <div class="account-header">
+                <div class="account-name">{{ acct.account_name }}</div>
+                <button class="icon-btn icon-btn-danger" type="button" (click)="confirmDelete(acct)"
+                    aria-label="Delete account" title="Delete account">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg>
+                </button>
+            </div>
             <div class="account-institution">
                 <span class="badge badge-accent">{{ acct.account_type }}</span>
                 @if (acct.account_subtype) {
                 <span class="account-inst-name">{{ acct.account_subtype }}</span>
                 }
             </div>
-            <div class="account-name">{{ acct.account_name }}</div>
             <div class="account-balances">
                 <div>
                     <span class="balance-label">Current</span>

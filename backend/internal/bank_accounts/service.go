@@ -2,6 +2,7 @@ package bank_accounts
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/google/uuid"
@@ -16,6 +17,8 @@ import (
 )
 
 type TransactionUpdate = transactions.TransactionUpdate
+
+var ErrAccountNotFound = errors.New("account not found")
 
 // Service handles bank account business logic.
 type Service struct {
@@ -46,6 +49,21 @@ func (s *Service) GetAccounts(ctx context.Context, userID uuid.UUID) ([]AccountR
 		out[i] = ToAccountResponse(a)
 	}
 	return out, nil
+}
+
+func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID, plaidAccountID string) error {
+	accounts, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	for _, account := range accounts {
+		if account.PlaidAccountID == plaidAccountID {
+			return s.repo.Delete(ctx, plaidAccountID)
+		}
+	}
+
+	return ErrAccountNotFound
 }
 
 func ToAccountResponse(a BankAccount) AccountResponse {

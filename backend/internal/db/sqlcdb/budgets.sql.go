@@ -193,6 +193,73 @@ func (q *Queries) GetBudgetsByUserID(ctx context.Context, appUserID uuid.UUID) (
 	return items, nil
 }
 
+const updateBudget = `-- name: UpdateBudget :one
+UPDATE budgets
+SET
+    name = COALESCE(NULLIF($2, ''), name),
+    category = CASE
+        WHEN $3::BOOLEAN THEN $4
+        ELSE category
+    END,
+    limit_amount = CASE
+        WHEN $5::NUMERIC(12, 2) IS NOT NULL THEN $5
+        ELSE limit_amount
+    END,
+    budget_period = COALESCE(NULLIF($6, ''), budget_period),
+    start_date = CASE
+        WHEN $7::DATE IS NOT NULL THEN $7
+        ELSE start_date
+    END,
+    end_date = CASE
+        WHEN $8::BOOLEAN THEN $9
+        ELSE end_date
+    END
+WHERE
+    id = $1
+RETURNING
+    id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
+`
+
+type UpdateBudgetParams struct {
+	ID       uuid.UUID
+	Column2  interface{}
+	Column3  bool
+	Category pgtype.Text
+	Column5  pgtype.Numeric
+	Column6  interface{}
+	Column7  pgtype.Date
+	Column8  bool
+	EndDate  pgtype.Date
+}
+
+func (q *Queries) UpdateBudget(ctx context.Context, arg UpdateBudgetParams) (Budget, error) {
+	row := q.db.QueryRow(ctx, updateBudget,
+		arg.ID,
+		arg.Column2,
+		arg.Column3,
+		arg.Category,
+		arg.Column5,
+		arg.Column6,
+		arg.Column7,
+		arg.Column8,
+		arg.EndDate,
+	)
+	var i Budget
+	err := row.Scan(
+		&i.ID,
+		&i.AppUserID,
+		&i.Name,
+		&i.Category,
+		&i.LimitAmount,
+		&i.AmountSpent,
+		&i.BudgetPeriod,
+		&i.StartDate,
+		&i.EndDate,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateBudgetAmountSpent = `-- name: UpdateBudgetAmountSpent :one
 UPDATE budgets SET amount_spent = $2 WHERE id = $1 RETURNING id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
 `

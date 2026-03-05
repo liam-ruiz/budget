@@ -15,6 +15,7 @@ type Repository interface {
 	Create(ctx context.Context, params sqlcdb.CreateBudgetParams) (Budget, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]Budget, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Budget, error)
+	Update(ctx context.Context, params sqlcdb.UpdateBudgetParams) (Budget, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateAmountSpent(ctx context.Context, params sqlcdb.UpdateBudgetAmountSpentParams) (Budget, error)
 	CalculateSpendByCategory(ctx context.Context, params sqlcdb.CalculateBudgetSpendByCategoryParams) (pgtype.Numeric, error)
@@ -52,6 +53,14 @@ func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]Budge
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (Budget, error) {
 	row, err := r.q.GetBudgetByID(ctx, id)
+	if err != nil {
+		return Budget{}, err
+	}
+	return toBudget(row), nil
+}
+
+func (r *repository) Update(ctx context.Context, params sqlcdb.UpdateBudgetParams) (Budget, error) {
+	row, err := r.q.UpdateBudget(ctx, params)
 	if err != nil {
 		return Budget{}, err
 	}

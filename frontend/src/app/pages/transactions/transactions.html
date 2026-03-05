@@ -28,11 +28,12 @@
                     <th>Category</th>
                     <th>Amount</th>
                     <th>Status</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 @for (txn of transactions(); track txn.transaction_id) {
-                <tr>
+                <tr [class.txn-row-deleting]="deletingTransactionId() === txn.transaction_id">
                     <td>{{ formatDate(txn.date) }}</td>
                     <td class="txn-name-cell">
                         <div class="txn-name-row">
@@ -68,7 +69,36 @@
                         <span class="badge badge-success">Cleared</span>
                         }
                     </td>
+                    <td class="txn-actions">
+                        <button class="icon-btn icon-btn-danger" type="button" (click)="confirmDelete(txn)"
+                            aria-label="Delete transaction" title="Delete transaction">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M18 6 6 18" />
+                                <path d="m6 6 12 12" />
+                            </svg>
+                        </button>
+                    </td>
                 </tr>
+                @if (deletingTransactionId() === txn.transaction_id) {
+                <tr class="txn-delete-row animate-in">
+                    <td colspan="7">
+                        <div class="txn-delete-inline">
+                            <h2>Delete transaction?</h2>
+                            <p><strong>{{ txn.merchant_name || txn.name }}</strong> on {{ formatDate(txn.date) }}</p>
+                            <p class="delete-copy">This removes the transaction from your history.</p>
+                            <div class="delete-actions">
+                                <button class="btn btn-ghost" type="button" (click)="cancelDelete()">Cancel</button>
+                                <button class="btn btn-danger" type="button" [disabled]="deleting()"
+                                    (click)="deleteTransaction()">
+                                    {{ deleting() ? 'Deleting…' : 'Delete' }}
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                }
                 }
             </tbody>
         </table>

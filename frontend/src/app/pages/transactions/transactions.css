@@ -62,3 +62,93 @@
     color: var(--text-muted);
     font-size: 0.85rem;
 }
+
+.txn-actions {
+    width: 1%;
+    text-align: right;
+}
+
+.txn-row-deleting {
+    opacity: 0.55;
+}
+
+.txn-delete-row td {
+    padding: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.txn-delete-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.txn-delete-inline h2 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.txn-delete-inline p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.icon-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.icon-btn-danger:hover {
+    color: var(--danger);
+}
+
+.delete-copy {
+    font-size: 0.85rem;
+}
+
+.delete-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    filter: brightness(1.15);
+}
+
+@media (max-width: 900px) {
+    .txn-delete-inline {
+        align-items: stretch;
+        text-align: left;
+    }
+
+    .delete-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}

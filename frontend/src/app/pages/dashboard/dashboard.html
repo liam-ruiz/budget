@@ -11,15 +11,15 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Linked Accounts</div>
-            <div class="stat-value">{{ accounts.length }}</div>
+            <div class="stat-value">{{ accounts().length }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Active Budgets</div>
-            <div class="stat-value">{{ budgets.length }}</div>
+            <div class="stat-value">{{ budgets().length }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Transactions</div>
-            <div class="stat-value">{{ recentTransactions.length }}</div>
+            <div class="stat-value">{{ recentTransactions().length }}</div>
         </div>
     </div>
 
@@ -30,13 +30,13 @@
                 <h2>Recent Transactions</h2>
                 <a routerLink="/transactions" class="card-link">View all →</a>
             </div>
-            @if (recentTransactions.length === 0) {
+            @if (recentTransactions().length === 0) {
             <div class="empty-state">
                 <p>No transactions yet. Link a bank account to get started.</p>
             </div>
             } @else {
             <div class="txn-list">
-                @for (txn of recentTransactions; track txn.transaction_id) {
+                @for (txn of recentTransactions(); track txn.transaction_id) {
                 <div class="txn-row">
                     <div class="txn-info">
                         <span class="txn-name">{{ txn.name }}</span>

@@ -30,6 +30,18 @@ type CreateBudgetRequest struct {
 	EndDate     *string `json:"end_date"`
 }
 
+// UpdateBudgetRequest is the payload for updating a budget. All fields are optional.
+type UpdateBudgetRequest struct {
+	Name          *string `json:"name"`
+	Category      *string `json:"category"`
+	LimitAmount   *string `json:"limit_amount"`
+	Period        *string `json:"period"`
+	StartDate     *string `json:"start_date"`
+	EndDate       *string `json:"end_date"`
+	ClearCategory bool    `json:"clear_category"`
+	ClearEndDate  bool    `json:"clear_end_date"`
+}
+
 // --- Plaid ---
 
 // ExchangeTokenRequest is the payload for exchanging a Plaid public token.

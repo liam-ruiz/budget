@@ -14,8 +14,15 @@ export class TransactionsPage implements OnInit {
 
     transactions: WritableSignal<Transaction[]> = signal<Transaction[]>([]);
     loading: WritableSignal<boolean> = signal(true);
+    deletingTransactionId: WritableSignal<string | null> = signal(null);
+    deleting: WritableSignal<boolean> = signal(false);
 
     ngOnInit() {
+        this.loadTransactions();
+    }
+
+    loadTransactions() {
+        this.loading.set(true);
         this.api.getTransactions().subscribe({
             next: (data) => {
                 this.loading.set(false);
@@ -24,6 +31,32 @@ export class TransactionsPage implements OnInit {
             error: () => {
                 this.loading.set(false);
                 this.transactions.set([]);
+            },
+        });
+    }
+
+    confirmDelete(transaction: Transaction) {
+        this.deletingTransactionId.set(transaction.transaction_id);
+    }
+
+    cancelDelete() {
+        this.deletingTransactionId.set(null);
+    }
+
+    deleteTransaction() {
+        const id = this.deletingTransactionId();
+        if (!id) return;
+
+        this.deleting.set(true);
+        this.api.deleteTransaction(id).subscribe({
+            next: () => {
+                this.deleting.set(false);
+                this.deletingTransactionId.set(null);
+                this.loadTransactions();
+            },
+            error: () => {
+                this.deleting.set(false);
+                this.deletingTransactionId.set(null);
             },
         });
     }

@@ -45,6 +45,21 @@ func (s *Service) GetBudgets(ctx context.Context, userID uuid.UUID) ([]BudgetRes
 	return out, nil
 }
 
+// UpdateBudget updates a budget and recalculates its spend.
+func (s *Service) UpdateBudget(ctx context.Context, params sqlcdb.UpdateBudgetParams) (BudgetResponse, error) {
+	b, err := s.repo.Update(ctx, params)
+	if err != nil {
+		return BudgetResponse{}, err
+	}
+	b = s.recalculateSpend(ctx, b)
+	return ToBudgetResponse(b), nil
+}
+
+// DeleteBudget removes a budget by ID.
+func (s *Service) DeleteBudget(ctx context.Context, id uuid.UUID) error {
+	return s.repo.Delete(ctx, id)
+}
+
 // recalculateSpend computes and updates the amount_spent for a budget.
 // If the budget has a category, only transactions matching that category are summed.
 // If no category, all transactions within the date range are summed.

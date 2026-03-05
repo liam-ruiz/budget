@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"math/big"
 	"net/http"
@@ -9,11 +10,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/liam-ruiz/budget/internal/api/types"
 	"github.com/liam-ruiz/budget/internal/auth"
+	"github.com/liam-ruiz/budget/internal/bank_accounts"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
 	"github.com/liam-ruiz/budget/internal/dependencies"
+	"github.com/liam-ruiz/budget/internal/transactions"
 )
 
 type AccountHandler struct {
@@ -66,6 +71,70 @@ func (h *AccountHandler) GetTransactions(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, txns)
 }
 
+// DeleteAccount removes a linked bank account for the authenticated user.
+func (h *AccountHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[DeleteAccount] %s %s", r.Method, r.URL.Path)
+
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	accountID := chi.URLParam(r, "id")
+	if accountID == "" {
+		writeError(w, http.StatusBadRequest, "invalid account id")
+		return
+	}
+
+	err = h.container.AccountSvc.DeleteAccount(r.Context(), userID, accountID)
+	if err != nil {
+		if errors.Is(err, bank_accounts.ErrAccountNotFound) {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+			return
+		}
+
+		log.Printf("Error deleting account: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete account")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// DeleteTransaction removes a transaction for the authenticated user.
+func (h *AccountHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[DeleteTransaction] %s %s", r.Method, r.URL.Path)
+
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	transactionID := chi.URLParam(r, "id")
+	if transactionID == "" {
+		writeError(w, http.StatusBadRequest, "invalid transaction id")
+		return
+	}
+
+	err = h.container.TransactionSvc.DeleteTransaction(r.Context(), userID, transactionID)
+	if err != nil {
+		if errors.Is(err, transactions.ErrTransactionNotFound) {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+			return
+		}
+
+		log.Printf("Error deleting transaction: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete transaction")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
 // CreateBudget creates a new budget for the authenticated user.
 func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[CreateBudget] %s %s", r.Method, r.URL.Path)
@@ -98,7 +167,6 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 	if period == "" {
 		period = "monthly"
 	}
-	// parse limit amount ("10.00" -> 1000 to be used for Numeric)
 	combined := strings.ReplaceAll(req.LimitAmount, ".", "")
 	limitAmount, err := strconv.Atoi(combined)
 	if err != nil {
@@ -107,7 +175,6 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert optional category to pgtype.Text
 	var category pgtype.Text
 	if req.Category != nil && *req.Category != "" {
 		category = pgtype.Text{String: *req.Category, Valid: true}
@@ -140,6 +207,115 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, budget)
+}
+
+// UpdateBudget partially or fully updates a budget.
+func (h *AccountHandler) UpdateBudget(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[UpdateBudget] %s %s", r.Method, r.URL.Path)
+
+	budgetID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid budget id")
+		return
+	}
+
+	var req types.UpdateBudgetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request body: %v\n", err)
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	params := sqlcdb.UpdateBudgetParams{
+		ID: budgetID,
+	}
+
+	// Column2 = name (empty string means keep existing via COALESCE)
+	if req.Name != nil {
+		params.Column2 = *req.Name
+	} else {
+		params.Column2 = ""
+	}
+
+	// Column3 = whether to update category, Category = new value
+	if req.Category != nil {
+		params.Column3 = true
+		params.Category = pgtype.Text{String: *req.Category, Valid: *req.Category != ""}
+	} else if req.ClearCategory {
+		params.Column3 = true
+		params.Category = pgtype.Text{}
+	}
+
+	// Column5 = limit_amount
+	if req.LimitAmount != nil {
+		combined := strings.ReplaceAll(*req.LimitAmount, ".", "")
+		limitAmount, err := strconv.Atoi(combined)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "limit_amount must be a valid number")
+			return
+		}
+		params.Column5 = pgtype.Numeric{Valid: true, Int: big.NewInt(int64(limitAmount))}
+	}
+
+	// Column6 = budget_period (empty string means keep existing)
+	if req.Period != nil {
+		params.Column6 = *req.Period
+	} else {
+		params.Column6 = ""
+	}
+
+	// Column7 = start_date
+	if req.StartDate != nil {
+		startDate, err := time.Parse("2006-01-02", *req.StartDate)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "start_date must be in YYYY-MM-DD format")
+			return
+		}
+		params.Column7 = pgtype.Date{Time: startDate, Valid: true}
+	}
+
+	// Column8 = whether to update end_date, EndDate = new value
+	if req.EndDate != nil {
+		endDate, err := time.Parse("2006-01-02", *req.EndDate)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "end_date must be in YYYY-MM-DD format")
+			return
+		}
+		params.Column8 = true
+		params.EndDate = pgtype.Date{Time: endDate, Valid: true}
+	} else if req.ClearEndDate {
+		params.Column8 = true
+		params.EndDate = pgtype.Date{}
+	}
+
+	budget, err := h.container.BudgetSvc.UpdateBudget(r.Context(), params)
+	if err != nil {
+		log.Printf("Error updating budget: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to update budget")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, budget)
+}
+
+// DeleteBudget removes a budget by ID.
+func (h *AccountHandler) DeleteBudget(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[DeleteBudget] %s %s", r.Method, r.URL.Path)
+
+	budgetID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid budget id")
+		return
+	}
+
+	err = h.container.BudgetSvc.DeleteBudget(r.Context(), budgetID)
+	if err != nil {
+		log.Printf("Error deleting budget: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete budget")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 // GetBudgets returns all budgets for the authenticated user.

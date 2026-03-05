@@ -95,17 +95,35 @@ WHERE
 ORDER BY t.transaction_date DESC;
 
 -- name: CreateTransactions :copyfrom
-INSERT INTO transactions (
-    plaid_transaction_id,
-    plaid_account_id,
-    transaction_date,
-    transaction_name,
-    amount,
-    pending,
-    merchant_name,
-    logo_url,
-    personal_finance_category,
-    detailed_category,
-    category_confidence_level,
-    category_icon_url
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+INSERT INTO
+    transactions (
+        plaid_transaction_id,
+        plaid_account_id,
+        transaction_date,
+        transaction_name,
+        amount,
+        pending,
+        merchant_name,
+        logo_url,
+        personal_finance_category,
+        detailed_category,
+        category_confidence_level,
+        category_icon_url
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12
+    );
+
+-- name: DeleteTransaction :exec
+DELETE FROM transactions WHERE plaid_transaction_id = $1;

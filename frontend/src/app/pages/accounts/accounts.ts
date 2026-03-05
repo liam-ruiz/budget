@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, Signal, signal, WritableSignal } from '@angular/core';
+import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api';
 import { PlaidService } from '../../services/plaid';
@@ -18,6 +18,8 @@ export class AccountsPage implements OnInit {
     loading: WritableSignal<boolean> = signal(true);
     linking: WritableSignal<boolean> = signal(false);
     linkError: WritableSignal<string> = signal('');
+    deletingAccountId: WritableSignal<string | null> = signal(null);
+    deleting: WritableSignal<boolean> = signal(false);
 
     ngOnInit() {
         this.loadAccounts();
@@ -53,5 +55,31 @@ export class AccountsPage implements OnInit {
     formatCurrency(value: string): string {
         const n = parseFloat(value || '0');
         return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
+
+    confirmDelete(account: Account) {
+        this.deletingAccountId.set(account.account_id);
+    }
+
+    cancelDelete() {
+        this.deletingAccountId.set(null);
+    }
+
+    deleteAccount() {
+        const id = this.deletingAccountId();
+        if (!id) return;
+
+        this.deleting.set(true);
+        this.api.deleteAccount(id).subscribe({
+            next: () => {
+                this.deleting.set(false);
+                this.deletingAccountId.set(null);
+                this.loadAccounts();
+            },
+            error: () => {
+                this.deleting.set(false);
+                this.deletingAccountId.set(null);
+            },
+        });
     }
 }

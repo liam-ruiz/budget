@@ -80,6 +80,15 @@ func (q *Queries) CreateBankAccount(ctx context.Context, arg CreateBankAccountPa
 	return i, err
 }
 
+const deleteBankAccount = `-- name: DeleteBankAccount :exec
+DELETE FROM bank_accounts WHERE plaid_account_id = $1
+`
+
+func (q *Queries) DeleteBankAccount(ctx context.Context, plaidAccountID string) error {
+	_, err := q.db.Exec(ctx, deleteBankAccount, plaidAccountID)
+	return err
+}
+
 const getBankAccountByPlaidAccountID = `-- name: GetBankAccountByPlaidAccountID :one
 SELECT plaid_account_id, plaid_item_id, account_name, official_name, account_type, account_subtype, current_balance, available_balance, iso_currency_code, updated_at FROM bank_accounts WHERE plaid_account_id = $1 LIMIT 1
 `
@@ -227,17 +236,18 @@ VALUES (
         $8,
         $9
     )
-ON CONFLICT (plaid_account_id) DO UPDATE
-    SET
-        plaid_item_id = $2,
-        account_name = $3,
-        official_name = $4,
-        account_type = $5,
-        account_subtype = $6,
-        current_balance = $7,
-        available_balance = $8,
-        iso_currency_code = $9,
-        updated_at = now()
+ON CONFLICT (plaid_account_id) DO
+UPDATE
+SET
+    plaid_item_id = $2,
+    account_name = $3,
+    official_name = $4,
+    account_type = $5,
+    account_subtype = $6,
+    current_balance = $7,
+    available_balance = $8,
+    iso_currency_code = $9,
+    updated_at = now()
 RETURNING
     plaid_account_id, plaid_item_id, account_name, official_name, account_type, account_subtype, current_balance, available_balance, iso_currency_code, updated_at
 `

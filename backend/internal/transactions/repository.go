@@ -14,6 +14,7 @@ type Repository interface {
 	Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (Transaction, error)
 	GetByAccountID(ctx context.Context, plaidAccountID string) ([]Transaction, error)
 	GetByUserID(ctx context.Context, appUserID uuid.UUID) ([]TransactionWithAccountName, error)
+	Delete(ctx context.Context, plaidTransactionID string) error
 }
 
 type repository struct {
@@ -72,7 +73,7 @@ func toTransactionWithAccountName(row sqlcdb.GetTransactionsByUserIDRow) Transac
 		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
 		CategoryIconUrl:         row.CategoryIconUrl.String,
 		CreatedAt:               row.CreatedAt.Time,
-		AccountName: row.AccountName,
+		AccountName:             row.AccountName,
 	}
 }
 
@@ -108,4 +109,8 @@ func toTransactions(rows []sqlcdb.Transaction) []Transaction {
 		out[i] = toTransaction(row)
 	}
 	return out
+}
+
+func (r *repository) Delete(ctx context.Context, plaidTransactionID string) error {
+	return r.q.DeleteTransaction(ctx, plaidTransactionID)
 }

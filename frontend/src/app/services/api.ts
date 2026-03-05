@@ -10,6 +10,7 @@ import {
     ExchangeTokenRequest,
     ExchangeTokenResponse,
     Transaction,
+    UpdateBudgetRequest,
 } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
@@ -22,9 +23,17 @@ export class ApiService {
         return this.http.get<Account[]>(`${this.base}/accounts`);
     }
 
+    deleteAccount(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.base}/accounts/${id}`);
+    }
+
     // Transactions
     getTransactions(): Observable<Transaction[]> {
         return this.http.get<Transaction[]>(`${this.base}/transactions`);
+    }
+
+    deleteTransaction(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.base}/transactions/${id}`);
     }
 
     // Budgets
@@ -34,6 +43,14 @@ export class ApiService {
 
     createBudget(payload: CreateBudgetRequest): Observable<Budget> {
         return this.http.post<Budget>(`${this.base}/budgets`, payload);
+    }
+
+    updateBudget(id: string, payload: UpdateBudgetRequest): Observable<Budget> {
+        return this.http.put<Budget>(`${this.base}/budgets/${id}`, payload);
+    }
+
+    deleteBudget(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.base}/budgets/${id}`);
     }
 
     // Plaid

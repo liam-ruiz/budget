@@ -25,7 +25,6 @@ VALUES (
 RETURNING
     *;
 
-
 -- name: UpsertBankAccount :one
 INSERT INTO
     bank_accounts (
@@ -50,17 +49,18 @@ VALUES (
         $8,
         $9
     )
-ON CONFLICT (plaid_account_id) DO UPDATE
-    SET
-        plaid_item_id = $2,
-        account_name = $3,
-        official_name = $4,
-        account_type = $5,
-        account_subtype = $6,
-        current_balance = $7,
-        available_balance = $8,
-        iso_currency_code = $9,
-        updated_at = now()
+ON CONFLICT (plaid_account_id) DO
+UPDATE
+SET
+    plaid_item_id = $2,
+    account_name = $3,
+    official_name = $4,
+    account_type = $5,
+    account_subtype = $6,
+    current_balance = $7,
+    available_balance = $8,
+    iso_currency_code = $9,
+    updated_at = now()
 RETURNING
     *;
 
@@ -91,3 +91,6 @@ SET
     updated_at = now()
 WHERE
     plaid_account_id = $1;
+
+-- name: DeleteBankAccount :exec
+DELETE FROM bank_accounts WHERE plaid_account_id = $1;

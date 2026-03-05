@@ -110,6 +110,15 @@ type CreateTransactionsParams struct {
 	CategoryIconUrl         pgtype.Text
 }
 
+const deleteTransaction = `-- name: DeleteTransaction :exec
+DELETE FROM transactions WHERE plaid_transaction_id = $1
+`
+
+func (q *Queries) DeleteTransaction(ctx context.Context, plaidTransactionID string) error {
+	_, err := q.db.Exec(ctx, deleteTransaction, plaidTransactionID)
+	return err
+}
+
 const getTransactionsByAccountID = `-- name: GetTransactionsByAccountID :many
 SELECT plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at
 FROM transactions

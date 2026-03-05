@@ -22,6 +22,10 @@
 }
 
 .account-card {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
     transition: border-color 0.2s, transform 0.2s;
 }
 
@@ -34,7 +38,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .account-inst-name {
@@ -47,7 +51,14 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 1rem;
+}
+
+.account-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .account-balances {
@@ -70,4 +81,69 @@
     font-weight: 700;
     color: var(--text-primary);
     margin-top: 0.125rem;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.icon-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.icon-btn-danger:hover {
+    color: var(--danger);
+}
+
+.delete-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    border-radius: inherit;
+    z-index: 2;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.delete-overlay p {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.delete-copy {
+    font-size: 0.8rem;
+    color: var(--text-secondary) !important;
+}
+
+.delete-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    filter: brightness(1.15);
 }
