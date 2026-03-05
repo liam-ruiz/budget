@@ -93,6 +93,14 @@
     color: var(--text-primary);
 }
 
+.budget-category-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
 /* ── Amounts Row ── */
 
 .budget-amounts {

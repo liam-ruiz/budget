@@ -25,7 +25,8 @@ type BankAccount struct {
 type Budget struct {
 	ID           uuid.UUID
 	AppUserID    uuid.UUID
-	Category     string
+	Name         string
+	Category     pgtype.Text
 	LimitAmount  pgtype.Numeric
 	AmountSpent  pgtype.Numeric
 	BudgetPeriod string

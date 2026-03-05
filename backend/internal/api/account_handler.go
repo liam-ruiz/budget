@@ -82,8 +82,8 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.Category == "" || req.LimitAmount == "" || req.StartDate == "" {
-		writeError(w, http.StatusBadRequest, "category, limit_amount, and start_date are required")
+	if req.Name == "" || req.LimitAmount == "" || req.StartDate == "" {
+		writeError(w, http.StatusBadRequest, "name, limit_amount, and start_date are required")
 		return
 	}
 
@@ -107,9 +107,16 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert optional category to pgtype.Text
+	var category pgtype.Text
+	if req.Category != nil && *req.Category != "" {
+		category = pgtype.Text{String: *req.Category, Valid: true}
+	}
+
 	params := sqlcdb.CreateBudgetParams{
 		AppUserID:    userID,
-		Category:     req.Category,
+		Name:         req.Name,
+		Category:     category,
 		LimitAmount:  pgtype.Numeric{Valid: true, Int: big.NewInt(int64(limitAmount))},
 		BudgetPeriod: period,
 		StartDate:    pgtype.Date{Time: startDate, Valid: true},

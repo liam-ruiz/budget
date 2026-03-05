@@ -52,7 +52,8 @@ CREATE TABLE transactions (
 CREATE TABLE budgets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
     app_user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    category TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT,
     limit_amount NUMERIC(12, 2) NOT NULL,
     amount_spent NUMERIC(12, 2) NOT NULL DEFAULT 0,
     budget_period TEXT NOT NULL DEFAULT 'monthly',

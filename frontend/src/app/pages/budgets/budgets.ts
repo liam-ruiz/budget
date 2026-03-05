@@ -4,6 +4,27 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
 import { Budget, CreateBudgetRequest } from '../../models/models';
 
+// Plaid PFCv2 primary categories
+const PLAID_CATEGORIES = [
+    'INCOME',
+    'LOAN_DISBURSEMENTS',
+    'LOAN_PAYMENTS',
+    'TRANSFER_IN',
+    'TRANSFER_OUT',
+    'BANK_FEES',
+    'ENTERTAINMENT',
+    'FOOD_AND_DRINK',
+    'GENERAL_MERCHANDISE',
+    'HOME_IMPROVEMENT',
+    'MEDICAL',
+    'PERSONAL_CARE',
+    'GENERAL_SERVICES',
+    'GOVERNMENT_AND_NON_PROFIT',
+    'TRANSPORTATION',
+    'TRAVEL',
+    'RENT_AND_UTILITIES',
+];
+
 @Component({
     selector: 'app-budgets',
     imports: [CommonModule, FormsModule],
@@ -13,6 +34,8 @@ import { Budget, CreateBudgetRequest } from '../../models/models';
 export class BudgetsPage implements OnInit {
     private api = inject(ApiService);
     Math = Math;
+
+    categories = PLAID_CATEGORIES;
 
     periods = {
         monthly: 'monthly',
@@ -26,7 +49,7 @@ export class BudgetsPage implements OnInit {
     saving: WritableSignal<boolean> = signal(false);
 
     form: CreateBudgetRequest = {
-        category: '',
+        name: '',
         limit_amount: '',
         period: 'monthly',
         start_date: new Date().toISOString().slice(0, 10),
@@ -56,6 +79,12 @@ export class BudgetsPage implements OnInit {
             ...this.form,
             limit_amount: String(this.form.limit_amount),
         };
+
+        // If category is empty string or undefined, remove it so the backend gets null
+        if (!payload.category) {
+            delete payload.category;
+        }
+
         // ensures end date is set based on period
         this.setEndDate(payload);
 
@@ -70,6 +99,14 @@ export class BudgetsPage implements OnInit {
                 this.saving.set(false);
             },
         });
+    }
+
+    /** Format a category string for display, e.g. "FOOD_AND_DRINK" -> "Food And Drink" */
+    formatCategory(category: string): string {
+        return category
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     }
 
     formatCurrency(value: string): string {
@@ -127,7 +164,7 @@ export class BudgetsPage implements OnInit {
 
     private resetForm() {
         this.form = {
-            category: '',
+            name: '',
             limit_amount: '',
             period: 'monthly',
             start_date: new Date().toISOString().slice(0, 10),

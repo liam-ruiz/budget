@@ -7,11 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// Budget represents a spending budget for a category.
+// Budget represents a spending budget.
 type Budget struct {
 	ID          uuid.UUID    `json:"id"`
 	AppUserID   uuid.UUID    `json:"user_id"`
-	Category    string       `json:"category"`
+	Name        string       `json:"name"`
+	Category    *string      `json:"category"`
 	LimitAmount string       `json:"limit_amount"`
 	AmountSpent string       `json:"amount_spent"`
 	Period      string       `json:"period"`
@@ -24,7 +25,8 @@ type Budget struct {
 type BudgetResponse struct {
 	ID          uuid.UUID `json:"id"`
 	UserID      uuid.UUID `json:"user_id"`
-	Category    string    `json:"category"`
+	Name        string    `json:"name"`
+	Category    *string   `json:"category"`
 	LimitAmount string    `json:"limit_amount"`
 	AmountSpent string    `json:"amount_spent"`
 	Period      string    `json:"period"`
@@ -42,6 +44,7 @@ func ToBudgetResponse(b Budget) BudgetResponse {
 	return BudgetResponse{
 		ID:          b.ID,
 		UserID:      b.AppUserID,
+		Name:        b.Name,
 		Category:    b.Category,
 		LimitAmount: b.LimitAmount,
 		AmountSpent: b.AmountSpent,

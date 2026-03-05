@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
 	"github.com/liam-ruiz/budget/internal/util"
 )
@@ -15,6 +16,9 @@ type Repository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]Budget, error)
 	GetByID(ctx context.Context, id uuid.UUID) (Budget, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+	UpdateAmountSpent(ctx context.Context, params sqlcdb.UpdateBudgetAmountSpentParams) (Budget, error)
+	CalculateSpendByCategory(ctx context.Context, params sqlcdb.CalculateBudgetSpendByCategoryParams) (pgtype.Numeric, error)
+	CalculateSpendAll(ctx context.Context, params sqlcdb.CalculateBudgetSpendAllParams) (pgtype.Numeric, error)
 }
 
 type repository struct {
@@ -58,21 +62,41 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.q.DeleteBudget(ctx, id)
 }
 
+func (r *repository) UpdateAmountSpent(ctx context.Context, params sqlcdb.UpdateBudgetAmountSpentParams) (Budget, error) {
+	row, err := r.q.UpdateBudgetAmountSpent(ctx, params)
+	if err != nil {
+		return Budget{}, err
+	}
+	return toBudget(row), nil
+}
+
+func (r *repository) CalculateSpendByCategory(ctx context.Context, params sqlcdb.CalculateBudgetSpendByCategoryParams) (pgtype.Numeric, error) {
+	return r.q.CalculateBudgetSpendByCategory(ctx, params)
+}
+
+func (r *repository) CalculateSpendAll(ctx context.Context, params sqlcdb.CalculateBudgetSpendAllParams) (pgtype.Numeric, error) {
+	return r.q.CalculateBudgetSpendAll(ctx, params)
+}
+
 func toBudget(row sqlcdb.Budget) Budget {
 	var endDate sql.NullTime
-	if !row.EndDate.Valid {
-		endDate = sql.NullTime{}
-	} else {
+	if row.EndDate.Valid {
 		endDate = sql.NullTime{
 			Time:  row.EndDate.Time,
 			Valid: true,
 		}
 	}
 
+	var category *string
+	if row.Category.Valid {
+		category = &row.Category.String
+	}
+
 	return Budget{
 		ID:          row.ID,
 		AppUserID:   row.AppUserID,
-		Category:    row.Category,
+		Name:        row.Name,
+		Category:    category,
 		LimitAmount: util.NumericToString(row.LimitAmount),
 		AmountSpent: util.NumericToString(row.AmountSpent),
 		Period:      row.BudgetPeriod,
@@ -80,5 +104,4 @@ func toBudget(row sqlcdb.Budget) Budget {
 		EndDate:     endDate,
 		CreatedAt:   row.CreatedAt.Time,
 	}
-
 }

@@ -47,7 +47,8 @@ export interface Transaction {
 export interface Budget {
     id: string;
     user_id: string;
-    category: string;
+    name: string;
+    category: string | null;
     limit_amount: string;
     amount_spent: string;
     period: string;
@@ -57,12 +58,14 @@ export interface Budget {
 }
 
 export interface CreateBudgetRequest {
-    category: string;
+    name: string;
+    category?: string;
     limit_amount: string;
     period: string;
     start_date: string;
     end_date?: string;
 }
+
 
 // ── Plaid ──
 

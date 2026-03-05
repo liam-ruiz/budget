@@ -33,9 +33,21 @@
         </div>
         <form (ngSubmit)="createBudget()" #budgetForm="ngForm" class="budget-form-grid">
             <div class="form-group">
+                <label for="name">Name</label>
+                <input id="name" type="text" placeholder="e.g. Monthly Groceries, Vacation" [(ngModel)]="form.name"
+                    name="name" required>
+                @if (budgetForm.controls['name']?.invalid && budgetForm.controls['name']?.touched) {
+                <span class="field-error">Name is required</span>
+                }
+            </div>
+            <div class="form-group">
                 <label for="category">Category</label>
-                <input id="category" type="text" placeholder="e.g. Groceries, Entertainment" [(ngModel)]="form.category"
-                    name="category" required>
+                <select id="category" [(ngModel)]="form.category" name="category">
+                    <option value="">No category</option>
+                    @for (cat of categories; track cat) {
+                    <option [value]="cat">{{ formatCategory(cat) }}</option>
+                    }
+                </select>
             </div>
             <div class="form-group">
                 <label for="limit">Spending Limit</label>
@@ -99,7 +111,12 @@
         @for (b of budgets(); track b.id) {
         <div class="budget-card card">
             <div class="budget-top">
-                <span class="budget-category">{{ b.category }}</span>
+                <div>
+                    <span class="budget-category">{{ b.name }}</span>
+                    @if (b.category) {
+                    <span class="budget-category-label">{{ formatCategory(b.category) }}</span>
+                    }
+                </div>
                 <span class="badge badge-accent">{{ b.period }}</span>
             </div>
 

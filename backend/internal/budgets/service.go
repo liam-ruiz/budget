@@ -2,9 +2,12 @@ package budgets
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
+	"github.com/liam-ruiz/budget/internal/util"
 )
 
 // Service handles budget business logic.
@@ -17,16 +20,18 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-// CreateBudget creates a new budget for a user.
+// CreateBudget creates a new budget for a user, then calculates its initial spend.
 func (s *Service) CreateBudget(ctx context.Context, params sqlcdb.CreateBudgetParams) (BudgetResponse, error) {
 	b, err := s.repo.Create(ctx, params)
 	if err != nil {
 		return BudgetResponse{}, err
 	}
+
+	b = s.recalculateSpend(ctx, b)
 	return ToBudgetResponse(b), nil
 }
 
-// GetBudgets returns all budgets for a user.
+// GetBudgets returns all budgets for a user with calculated spend amounts.
 func (s *Service) GetBudgets(ctx context.Context, userID uuid.UUID) ([]BudgetResponse, error) {
 	budgets, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
@@ -34,7 +39,45 @@ func (s *Service) GetBudgets(ctx context.Context, userID uuid.UUID) ([]BudgetRes
 	}
 	out := make([]BudgetResponse, len(budgets))
 	for i, b := range budgets {
+		b = s.recalculateSpend(ctx, b)
 		out[i] = ToBudgetResponse(b)
 	}
 	return out, nil
+}
+
+// recalculateSpend computes and updates the amount_spent for a budget.
+// If the budget has a category, only transactions matching that category are summed.
+// If no category, all transactions within the date range are summed.
+func (s *Service) recalculateSpend(ctx context.Context, b Budget) Budget {
+	var spent pgtype.Numeric
+	var err error
+
+	startDate := pgtype.Date{Time: b.StartDate, Valid: true}
+	var endDate pgtype.Date
+	if b.EndDate.Valid {
+		endDate = pgtype.Date{Time: b.EndDate.Time, Valid: true}
+	}
+
+	if b.Category != nil && *b.Category != "" {
+		spent, err = s.repo.CalculateSpendByCategory(ctx, sqlcdb.CalculateBudgetSpendByCategoryParams{
+			AppUserID:         b.AppUserID,
+			Upper:             *b.Category,
+			TransactionDate:   startDate,
+			TransactionDate_2: endDate,
+		})
+	} else {
+		spent, err = s.repo.CalculateSpendAll(ctx, sqlcdb.CalculateBudgetSpendAllParams{
+			AppUserID:         b.AppUserID,
+			TransactionDate:   startDate,
+			TransactionDate_2: endDate,
+		})
+	}
+
+	if err != nil {
+		log.Printf("[recalculateSpend] error calculating spend for budget %s: %v", b.ID, err)
+		return b
+	}
+
+	b.AmountSpent = util.NumericToString(spent)
+	return b
 }

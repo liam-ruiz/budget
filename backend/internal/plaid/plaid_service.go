@@ -126,5 +126,6 @@ func (s *Service) WebhookPublicKeyGet(ctx context.Context, kid string) (plaidlib
 		log.Printf("Error getting webhook public key: %v\n", err)
 		return plaidlib.WebhookVerificationKeyGetResponse{}, err
 	}
+
 	return resp, nil
 }

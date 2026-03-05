@@ -12,24 +12,89 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const calculateBudgetSpendAll = `-- name: CalculateBudgetSpendAll :one
+SELECT COALESCE(SUM(t.amount), 0)::NUMERIC(12, 2) AS total_spent
+FROM
+    transactions t
+    JOIN bank_accounts ba ON t.plaid_account_id = ba.plaid_account_id
+    JOIN plaid_items pi ON ba.plaid_item_id = pi.plaid_item_id
+WHERE
+    pi.app_user_id = $1
+    AND t.transaction_date >= $2
+    AND (
+        t.transaction_date <= $3
+        OR $3 IS NULL
+    )
+`
+
+type CalculateBudgetSpendAllParams struct {
+	AppUserID         uuid.UUID
+	TransactionDate   pgtype.Date
+	TransactionDate_2 pgtype.Date
+}
+
+func (q *Queries) CalculateBudgetSpendAll(ctx context.Context, arg CalculateBudgetSpendAllParams) (pgtype.Numeric, error) {
+	row := q.db.QueryRow(ctx, calculateBudgetSpendAll, arg.AppUserID, arg.TransactionDate, arg.TransactionDate_2)
+	var total_spent pgtype.Numeric
+	err := row.Scan(&total_spent)
+	return total_spent, err
+}
+
+const calculateBudgetSpendByCategory = `-- name: CalculateBudgetSpendByCategory :one
+SELECT COALESCE(SUM(t.amount), 0)::NUMERIC(12, 2) AS total_spent
+FROM
+    transactions t
+    JOIN bank_accounts ba ON t.plaid_account_id = ba.plaid_account_id
+    JOIN plaid_items pi ON ba.plaid_item_id = pi.plaid_item_id
+WHERE
+    pi.app_user_id = $1
+    AND UPPER(t.personal_finance_category) = UPPER($2)
+    AND t.transaction_date >= $3
+    AND (
+        t.transaction_date <= $4
+        OR $4 IS NULL
+    )
+`
+
+type CalculateBudgetSpendByCategoryParams struct {
+	AppUserID         uuid.UUID
+	Upper             interface{}
+	TransactionDate   pgtype.Date
+	TransactionDate_2 pgtype.Date
+}
+
+func (q *Queries) CalculateBudgetSpendByCategory(ctx context.Context, arg CalculateBudgetSpendByCategoryParams) (pgtype.Numeric, error) {
+	row := q.db.QueryRow(ctx, calculateBudgetSpendByCategory,
+		arg.AppUserID,
+		arg.Upper,
+		arg.TransactionDate,
+		arg.TransactionDate_2,
+	)
+	var total_spent pgtype.Numeric
+	err := row.Scan(&total_spent)
+	return total_spent, err
+}
+
 const createBudget = `-- name: CreateBudget :one
 INSERT INTO
     budgets (
         app_user_id,
+        name,
         category,
         limit_amount,
         budget_period,
         start_date,
         end_date
     )
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING
-    id, app_user_id, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
+    id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
 `
 
 type CreateBudgetParams struct {
 	AppUserID    uuid.UUID
-	Category     string
+	Name         string
+	Category     pgtype.Text
 	LimitAmount  pgtype.Numeric
 	BudgetPeriod string
 	StartDate    pgtype.Date
@@ -39,6 +104,7 @@ type CreateBudgetParams struct {
 func (q *Queries) CreateBudget(ctx context.Context, arg CreateBudgetParams) (Budget, error) {
 	row := q.db.QueryRow(ctx, createBudget,
 		arg.AppUserID,
+		arg.Name,
 		arg.Category,
 		arg.LimitAmount,
 		arg.BudgetPeriod,
@@ -49,6 +115,7 @@ func (q *Queries) CreateBudget(ctx context.Context, arg CreateBudgetParams) (Bud
 	err := row.Scan(
 		&i.ID,
 		&i.AppUserID,
+		&i.Name,
 		&i.Category,
 		&i.LimitAmount,
 		&i.AmountSpent,
@@ -70,7 +137,7 @@ func (q *Queries) DeleteBudget(ctx context.Context, id uuid.UUID) error {
 }
 
 const getBudgetByID = `-- name: GetBudgetByID :one
-SELECT id, app_user_id, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at FROM budgets WHERE id = $1
+SELECT id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at FROM budgets WHERE id = $1
 `
 
 func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, error) {
@@ -79,6 +146,7 @@ func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, erro
 	err := row.Scan(
 		&i.ID,
 		&i.AppUserID,
+		&i.Name,
 		&i.Category,
 		&i.LimitAmount,
 		&i.AmountSpent,
@@ -91,7 +159,7 @@ func (q *Queries) GetBudgetByID(ctx context.Context, id uuid.UUID) (Budget, erro
 }
 
 const getBudgetsByUserID = `-- name: GetBudgetsByUserID :many
-SELECT id, app_user_id, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at FROM budgets WHERE app_user_id = $1 ORDER BY category
+SELECT id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at FROM budgets WHERE app_user_id = $1 ORDER BY name
 `
 
 func (q *Queries) GetBudgetsByUserID(ctx context.Context, appUserID uuid.UUID) ([]Budget, error) {
@@ -106,6 +174,7 @@ func (q *Queries) GetBudgetsByUserID(ctx context.Context, appUserID uuid.UUID) (
 		if err := rows.Scan(
 			&i.ID,
 			&i.AppUserID,
+			&i.Name,
 			&i.Category,
 			&i.LimitAmount,
 			&i.AmountSpent,
@@ -125,7 +194,7 @@ func (q *Queries) GetBudgetsByUserID(ctx context.Context, appUserID uuid.UUID) (
 }
 
 const updateBudgetAmountSpent = `-- name: UpdateBudgetAmountSpent :one
-UPDATE budgets SET amount_spent = $2 WHERE id = $1 RETURNING id, app_user_id, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
+UPDATE budgets SET amount_spent = $2 WHERE id = $1 RETURNING id, app_user_id, name, category, limit_amount, amount_spent, budget_period, start_date, end_date, created_at
 `
 
 type UpdateBudgetAmountSpentParams struct {
@@ -139,6 +208,7 @@ func (q *Queries) UpdateBudgetAmountSpent(ctx context.Context, arg UpdateBudgetA
 	err := row.Scan(
 		&i.ID,
 		&i.AppUserID,
+		&i.Name,
 		&i.Category,
 		&i.LimitAmount,
 		&i.AmountSpent,

@@ -22,7 +22,8 @@ type UserResponse struct {
 
 // CreateBudgetRequest is the payload for creating a new budget.
 type CreateBudgetRequest struct {
-	Category    string  `json:"category"`
+	Name        string  `json:"name"`
+	Category    *string `json:"category"`
 	LimitAmount string  `json:"limit_amount"`
 	Period      string  `json:"period"`
 	StartDate   string  `json:"start_date"`
@@ -61,4 +62,3 @@ type PlaidWebhook struct {
 	WebhookCode string `json:"webhook_code"`
 	PlaidItemID string `json:"item_id"`
 }
-
