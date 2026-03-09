@@ -338,10 +338,11 @@
     background: rgba(3, 8, 18, 0.68);
     backdrop-filter: blur(8px);
     z-index: 40;
-    padding: 2rem;
+    padding: clamp(1.5rem, 6vh, 4rem) 2rem 2rem;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow: hidden;
 }
 
 .detail-modal {
@@ -468,7 +469,6 @@
 @media (max-width: 768px) {
     .detail-modal-backdrop {
         padding: 1rem;
-        align-items: stretch;
     }
 
     .detail-modal {

@@ -3,6 +3,11 @@
   min-height: 100vh;
 }
 
+.app-shell.modal-open {
+  height: 100vh;
+  overflow: hidden;
+}
+
 /* ── Sidebar ── */
 .sidebar {
   width: 240px;

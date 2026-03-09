@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api';
 import { PlaidService } from '../../services/plaid';
+import { UiStateService } from '../../services/ui-state';
 import { Account, Transaction } from '../../models/models';
 
 @Component({
@@ -11,9 +12,10 @@ import { Account, Transaction } from '../../models/models';
     templateUrl: './accounts.html',
     styleUrl: './accounts.css',
 })
-export class AccountsPage implements OnInit {
+export class AccountsPage implements OnInit, OnDestroy {
     private api = inject(ApiService);
     private plaid = inject(PlaidService);
+    private uiState = inject(UiStateService);
 
     accounts: WritableSignal<Account[]> = signal<Account[]>([]);
     loading: WritableSignal<boolean> = signal(true);
@@ -29,6 +31,10 @@ export class AccountsPage implements OnInit {
 
     ngOnInit() {
         this.loadAccounts();
+    }
+
+    ngOnDestroy() {
+        this.unlockPageScroll();
     }
 
     loadAccounts() {
@@ -82,6 +88,7 @@ export class AccountsPage implements OnInit {
         this.selectedAccountTransactions.set([]);
         this.detailError.set('');
         this.detailLoading.set(true);
+        this.lockPageScroll();
 
         forkJoin({
             account: this.api.getAccount(accountId),
@@ -105,6 +112,7 @@ export class AccountsPage implements OnInit {
         this.selectedAccountTransactions.set([]);
         this.detailError.set('');
         this.detailLoading.set(false);
+        this.unlockPageScroll();
     }
 
     confirmDelete(account: Account) {
@@ -134,5 +142,13 @@ export class AccountsPage implements OnInit {
                 this.deletingAccountId.set(null);
             },
         });
+    }
+
+    private lockPageScroll() {
+        this.uiState.openModal();
+    }
+
+    private unlockPageScroll() {
+        this.uiState.closeModal();
     }
 }

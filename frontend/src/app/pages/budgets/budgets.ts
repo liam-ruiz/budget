@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api';
+import { UiStateService } from '../../services/ui-state';
 import { Budget, CreateBudgetRequest, Transaction, UpdateBudgetRequest } from '../../models/models';
 
 // Plaid PFCv2 primary categories
@@ -32,8 +33,9 @@ const PLAID_CATEGORIES = [
     templateUrl: './budgets.html',
     styleUrl: './budgets.css',
 })
-export class BudgetsPage implements OnInit {
+export class BudgetsPage implements OnInit, OnDestroy {
     private api = inject(ApiService);
+    private uiState = inject(UiStateService);
     Math = Math;
 
     categories = PLAID_CATEGORIES;
@@ -70,6 +72,10 @@ export class BudgetsPage implements OnInit {
 
     ngOnInit() {
         this.loadBudgets();
+    }
+
+    ngOnDestroy() {
+        this.unlockPageScroll();
     }
 
     loadBudgets() {
@@ -136,6 +142,7 @@ export class BudgetsPage implements OnInit {
         this.selectedBudgetTransactions.set([]);
         this.detailError.set('');
         this.detailLoading.set(true);
+        this.lockPageScroll();
 
         forkJoin({
             budget: this.api.getBudget(budgetId),
@@ -159,6 +166,7 @@ export class BudgetsPage implements OnInit {
         this.selectedBudgetTransactions.set([]);
         this.detailError.set('');
         this.detailLoading.set(false);
+        this.unlockPageScroll();
     }
 
     cancelEdit() {
@@ -308,5 +316,13 @@ export class BudgetsPage implements OnInit {
             period: 'monthly',
             start_date: new Date().toISOString().slice(0, 10),
         };
+    }
+
+    private lockPageScroll() {
+        this.uiState.openModal();
+    }
+
+    private unlockPageScroll() {
+        this.uiState.closeModal();
     }
 }

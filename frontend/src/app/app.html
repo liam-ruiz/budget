@@ -1,5 +1,5 @@
 @if (auth.isLoggedIn) {
-  <div class="app-shell">
+  <div class="app-shell" [class.modal-open]="uiState.modalOpen()">
     <!-- Sidebar -->
     <aside class="sidebar" [class.mobile-open]="mobileNavOpen()">
       <div class="sidebar-header">

@@ -2,10 +2,10 @@ package transactions
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
-	
 )
 
 // Repository defines the interface for transaction data access.
@@ -32,6 +32,7 @@ func (r *repository) Create(ctx context.Context, params sqlcdb.CreateTransaction
 }
 
 func (r *repository) Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (sqlcdb.Transaction, error) {
+	log.Printf("Upserting transaction: %+v", params)
 	return r.q.UpsertTransaction(ctx, params)
 }
 

@@ -1,6 +1,7 @@
 import { Component, HostListener, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth';
+import { UiStateService } from './services/ui-state';
 
 @Component({
   selector: 'app-root',
@@ -10,6 +11,7 @@ import { AuthService } from './services/auth';
 })
 export class App {
   auth = inject(AuthService);
+  uiState = inject(UiStateService);
   mobileNavOpen = signal(false);
 
   logout() {
