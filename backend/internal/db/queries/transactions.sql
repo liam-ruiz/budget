@@ -127,3 +127,16 @@ VALUES (
 
 -- name: DeleteTransaction :exec
 DELETE FROM transactions WHERE plaid_transaction_id = $1;
+
+-- name: GetTransactionsByBudgetID :many
+SELECT t.*, ba.account_name
+FROM
+    budgets b 
+    JOIN plaid_items pl ON b.app_user_id = pl.app_user_id
+    JOIN bank_accounts ba ON pl.plaid_item_id = ba.plaid_item_id
+    JOIN transactions t ON ba.plaid_account_id = t.plaid_account_id
+WHERE
+    b.id = $1 AND
+    t.transaction_date >= b.start_date AND
+    (b.end_date IS NULL OR t.transaction_date <= b.end_date)
+ORDER BY t.transaction_date DESC;

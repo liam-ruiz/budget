@@ -4,27 +4,54 @@
         <p>Your financial overview at a glance</p>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Total Balance</div>
-            <div class="stat-value">{{ totalBalance() }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Linked Accounts</div>
-            <div class="stat-value">{{ accounts().length }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Active Budgets</div>
-            <div class="stat-value">{{ budgets().length }}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Transactions</div>
-            <div class="stat-value">{{ recentTransactions().length }}</div>
-        </div>
-    </div>
-
     <div class="dashboard-grid">
-        <!-- Recent Transactions -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Asset Balance</h2>
+                <a routerLink="/accounts" class="card-link">Go to Accounts →</a>
+            </div>
+            <div class="asset-balance-total">{{ assetBalance() }}</div>
+            @if (assetAccounts().length === 0) {
+            <div class="empty-state compact-empty-state">
+                <p>No asset accounts yet.</p>
+            </div>
+            } @else {
+            <div class="asset-account-lines">
+                @for (account of assetAccounts(); track account.account_id) {
+                <div class="asset-account-line">
+                    <span class="asset-account-line-name">{{ account.account_name }}</span>
+                    <span class="asset-account-line-balance">{{ formatCurrency(account.available_balance) }}</span>
+                </div>
+                }
+            </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Active Budgets</h2>
+                <a routerLink="/budgets" class="card-link">View all →</a>
+            </div>
+            @if (activeBudgets().length === 0) {
+            <div class="empty-state compact-empty-state">
+                <p>No active budgets right now.</p>
+            </div>
+            } @else {
+            <div class="budget-quick-list">
+                @for (budget of activeBudgets(); track budget.id) {
+                <div class="budget-quick-row">
+                    <span class="budget-quick-name">{{ budget.name }}</span>
+                    <div class="budget-quick-progress" [style.background]="getBudgetCircle(getSpentPercent(budget))">
+                        <div class="budget-quick-progress-inner">
+                            {{ Math.min(getSpentPercent(budget), 999) }}%
+                        </div>
+                    </div>
+                </div>
+                }
+            </div>
+            }
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h2>Recent Transactions</h2>
@@ -56,30 +83,5 @@
             }
         </div>
 
-        <!-- Quick Actions -->
-        <div class="card">
-            <div class="card-header">
-                <h2>Quick Actions</h2>
-            </div>
-            <div class="quick-actions">
-                <a routerLink="/accounts" class="btn btn-ghost action-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect width="20" height="14" x="2" y="5" rx="2" />
-                        <line x1="2" x2="22" y1="10" y2="10" />
-                    </svg>
-                    Link Account
-                </a>
-                <a routerLink="/budgets" class="btn btn-ghost action-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" x2="12" y1="20" y2="10" />
-                        <line x1="18" x2="18" y1="20" y2="4" />
-                        <line x1="6" x2="6" y1="20" y2="16" />
-                    </svg>
-                    Create Budget
-                </a>
-            </div>
-        </div>
     </div>
 </div>

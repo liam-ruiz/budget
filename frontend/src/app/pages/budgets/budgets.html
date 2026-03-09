@@ -109,15 +109,16 @@
     } @else {
     <div class="budgets-grid">
         @for (b of budgets(); track b.id) {
-        <div class="budget-card card">
+        <div class="budget-card card" [class.budget-card-active]="selectedBudgetId() === b.id"
+            (click)="openBudgetDetail(b.id)">
 
             <!-- Delete confirmation overlay -->
             @if (deletingBudgetId() === b.id) {
-            <div class="delete-overlay animate-in">
+            <div class="delete-overlay animate-in" (click)="$event.stopPropagation()">
                 <p>Delete <strong>{{ b.name }}</strong>?</p>
                 <div class="delete-actions">
-                    <button class="btn btn-ghost" (click)="cancelDelete()">Cancel</button>
-                    <button class="btn btn-danger" (click)="deleteBudget()">Delete</button>
+                    <button class="btn btn-ghost" (click)="$event.stopPropagation(); cancelDelete()">Cancel</button>
+                    <button class="btn btn-danger" (click)="$event.stopPropagation(); deleteBudget()">Delete</button>
                 </div>
             </div>
             }
@@ -164,8 +165,8 @@
                         <input type="date" [(ngModel)]="editForm.end_date">
                     </div>
                     <div class="form-actions">
-                        <button class="btn btn-ghost" (click)="cancelEdit()">Cancel</button>
-                        <button class="btn btn-primary" [disabled]="saving()" (click)="saveEdit()">
+                        <button class="btn btn-ghost" (click)="$event.stopPropagation(); cancelEdit()">Cancel</button>
+                        <button class="btn btn-primary" [disabled]="saving()" (click)="$event.stopPropagation(); saveEdit()">
                             {{ saving() ? 'Saving…' : 'Save' }}
                         </button>
                     </div>
@@ -183,14 +184,14 @@
                 </div>
                 <div class="budget-actions">
                     <span class="badge badge-accent">{{ b.period }}</span>
-                    <button class="icon-btn" (click)="startEdit(b)" aria-label="Edit budget" title="Edit">
+                    <button class="icon-btn" (click)="$event.stopPropagation(); startEdit(b)" aria-label="Edit budget" title="Edit">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                             <path d="m15 5 4 4" />
                         </svg>
                     </button>
-                    <button class="icon-btn icon-btn-danger" (click)="confirmDelete(b)" aria-label="Delete budget"
+                    <button class="icon-btn icon-btn-danger" (click)="$event.stopPropagation(); confirmDelete(b)" aria-label="Delete budget"
                         title="Delete">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -253,6 +254,102 @@
             }
         </div>
         }
+    </div>
+    }
+
+    @if (selectedBudgetId()) {
+    <div class="detail-modal-backdrop" (click)="closeBudgetDetail()">
+        <div class="detail-modal card animate-in" (click)="$event.stopPropagation()">
+            <div class="detail-modal-header">
+                <div>
+                    <h2>Budget Details</h2>
+                    @if (selectedBudget()) {
+                    <p>{{ selectedBudget()!.name }}</p>
+                    }
+                </div>
+                <button class="close-btn" type="button" (click)="closeBudgetDetail()" aria-label="Close details">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            @if (detailLoading()) {
+            <div class="empty-state compact-empty-state">
+                <p>Loading budget details…</p>
+            </div>
+            } @else if (detailError()) {
+            <div class="field-error" style="font-size: 0.85rem;">{{ detailError() }}</div>
+            } @else if (selectedBudget(); as budget) {
+            <div class="detail-modal-grid">
+                <div class="detail-stat">
+                    <span class="detail-label">Category</span>
+                    <strong>{{ budget.category ? formatCategory(budget.category) : 'All categories' }}</strong>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-label">Period</span>
+                    <strong>{{ budget.period }}</strong>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-label">Budget Limit</span>
+                    <strong>{{ formatCurrency(budget.limit_amount) }}</strong>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-label">Amount Spent</span>
+                    <strong>{{ formatCurrency(budget.amount_spent) }}</strong>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-label">Remaining</span>
+                    <strong [class.detail-over-budget]="getRemainingNum(budget) < 0">{{ formatCurrency(getRemainingAmount(budget)) }}</strong>
+                </div>
+                <div class="detail-stat">
+                    <span class="detail-label">Date Range</span>
+                    <strong>{{ budget.start_date }}{{ budget.end_date ? ' → ' + budget.end_date : '' }}</strong>
+                </div>
+            </div>
+
+            <div class="progress-section detail-progress">
+                <div class="progress-header">
+                    <span class="progress-label">Spending</span>
+                    <span class="progress-pct">{{ getSpentPercent(budget) }}%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill progress-fill-spending" [style.width.%]="Math.min(getSpentPercent(budget), 100)"
+                        [class.over-budget]="getSpentPercent(budget) > 100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <h3>Applicable Transactions</h3>
+                    <span>{{ selectedBudgetTransactions().length }}</span>
+                </div>
+
+                @if (selectedBudgetTransactions().length === 0) {
+                <div class="empty-state compact-empty-state">
+                    <p>No transactions currently apply to this budget.</p>
+                </div>
+                } @else {
+                <div class="detail-transaction-list">
+                    @for (txn of selectedBudgetTransactions(); track txn.transaction_id) {
+                    <div class="detail-transaction-row">
+                        <div class="detail-transaction-copy">
+                            <strong>{{ txn.name }}</strong>
+                            <span>{{ txn.date }} · {{ txn.personal_finance_category || 'Misc' }}</span>
+                        </div>
+                        <div class="detail-transaction-amount" [class.negative]="parseFloat(txn.amount) < 0">
+                            {{ formatTransactionAmount(txn.amount) }}
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+            }
+        </div>
     </div>
     }
 </div>

@@ -23,6 +23,14 @@ export class ApiService {
         return this.http.get<Account[]>(`${this.base}/accounts`);
     }
 
+    getAccount(id: string): Observable<Account> {
+        return this.http.get<Account>(`${this.base}/accounts/${id}`);
+    }
+
+    getAccountTransactions(id: string): Observable<Transaction[]> {
+        return this.http.get<Transaction[]>(`${this.base}/accounts/${id}/transactions`);
+    }
+
     deleteAccount(id: string): Observable<void> {
         return this.http.delete<void>(`${this.base}/accounts/${id}`);
     }
@@ -39,6 +47,14 @@ export class ApiService {
     // Budgets
     getBudgets(): Observable<Budget[]> {
         return this.http.get<Budget[]>(`${this.base}/budgets`);
+    }
+
+    getBudget(id: string): Observable<Budget> {
+        return this.http.get<Budget>(`${this.base}/budgets/${id}`);
+    }
+
+    getBudgetTransactions(id: string): Observable<Transaction[]> {
+        return this.http.get<Transaction[]>(`${this.base}/budgets/${id}/transactions`);
     }
 
     createBudget(payload: CreateBudgetRequest): Observable<Budget> {

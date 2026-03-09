@@ -51,6 +51,16 @@ func (s *Service) GetAccounts(ctx context.Context, userID uuid.UUID) ([]AccountR
 	return out, nil
 }
 
+// GetAccount returns a single bank account owned by the user.
+func (s *Service) GetAccount(ctx context.Context, plaidAccountID string) (AccountResponseWithUserID, error) {
+	account, err := s.repo.GetByPlaidAccountID(ctx, plaidAccountID)
+	if err != nil {
+		return AccountResponseWithUserID{}, err
+	}
+
+	return ToAccountResponseWithUserID(account), nil
+}
+
 func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID, plaidAccountID string) error {
 	accounts, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
@@ -66,7 +76,7 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID, plaidAcco
 	return ErrAccountNotFound
 }
 
-func ToAccountResponse(a BankAccount) AccountResponse {
+func ToAccountResponse(a sqlcdb.BankAccount) AccountResponse {
 	subtype := ""
 	if a.AccountSubtype.Valid {
 		subtype = a.AccountSubtype.String
@@ -84,13 +94,32 @@ func ToAccountResponse(a BankAccount) AccountResponse {
 	}
 }
 
+func ToAccountResponseWithUserID(a sqlcdb.GetBankAccountByPlaidAccountIDRow) AccountResponseWithUserID {
+	subtype := ""
+	if a.AccountSubtype.Valid {
+		subtype = a.AccountSubtype.String
+	}
+
+	return AccountResponseWithUserID{
+		PlaidItemID:      a.PlaidItemID,
+		PlaidAccountID:   a.PlaidAccountID,
+		AccountName:      a.AccountName,
+		AccountType:      a.AccountType,
+		AccountSubtype:   subtype,
+		CurrentBalance:   util.NumericToString(a.CurrentBalance),
+		AvailableBalance: util.NumericToString(a.AvailableBalance),
+		IsoCurrencyCode:  a.IsoCurrencyCode,
+		UserID:           a.AppUserID.String(),
+	}
+}
+
 // CreatePlaidItem persists a new Plaid item (connection).
 func (s *Service) CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePlaidItemParams) (sqlcdb.PlaidItem, error) {
 	return s.repo.CreatePlaidItem(ctx, params)
 }
 
 // CreateBankAccount creates a new bank account under a Plaid item.
-func (s *Service) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error) {
+func (s *Service) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (sqlcdb.BankAccount, error) {
 	return s.repo.CreateBankAccount(ctx, params)
 }
 

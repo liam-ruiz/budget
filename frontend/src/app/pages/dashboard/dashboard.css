@@ -1,14 +1,19 @@
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
+}
+
+.dashboard-grid > .card:last-child {
+    grid-column: 1 / -1;
 }
 
 .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
 .card-header h2 {
@@ -22,39 +27,89 @@
     color: var(--accent);
     text-decoration: none;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .card-link:hover {
     text-decoration: underline;
 }
 
-/* Transaction list */
+.asset-balance-total {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+}
+
+.asset-account-lines,
+.budget-quick-list,
 .txn-list {
     display: flex;
     flex-direction: column;
 }
 
+.asset-account-line,
+.budget-quick-row,
 .txn-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border);
 }
 
+.asset-account-line:last-child,
+.budget-quick-row:last-child,
 .txn-row:last-child {
     border-bottom: none;
+}
+
+.asset-account-line-name,
+.budget-quick-name,
+.txn-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.asset-account-line-balance,
+.txn-amount {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.budget-quick-progress {
+    width: 42px;
+    height: 42px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.budget-quick-progress-inner {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: #fff;
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .txn-info {
     display: flex;
     flex-direction: column;
-}
-
-.txn-name {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-primary);
 }
 
 .txn-category {
@@ -64,8 +119,6 @@
 }
 
 .txn-amount {
-    font-size: 0.875rem;
-    font-weight: 600;
     color: var(--success);
 }
 
@@ -73,20 +126,22 @@
     color: var(--danger);
 }
 
-/* Quick Actions */
-.quick-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.action-btn {
-    justify-content: flex-start;
-    width: 100%;
+.compact-empty-state {
+    padding: 1.5rem 0 0.25rem;
+    text-align: left;
 }
 
 @media (max-width: 768px) {
     .dashboard-grid {
         grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid > .card:last-child {
+        grid-column: auto;
+    }
+
+    .card-header {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

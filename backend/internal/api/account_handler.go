@@ -16,6 +16,7 @@ import (
 	"github.com/liam-ruiz/budget/internal/api/types"
 	"github.com/liam-ruiz/budget/internal/auth"
 	"github.com/liam-ruiz/budget/internal/bank_accounts"
+	"github.com/liam-ruiz/budget/internal/budgets"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
 	"github.com/liam-ruiz/budget/internal/dependencies"
 	"github.com/liam-ruiz/budget/internal/transactions"
@@ -51,6 +52,38 @@ func (h *AccountHandler) GetAccounts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, accounts)
 }
 
+// GetAccount returns a single linked bank account for the authenticated user.
+func (h *AccountHandler) GetAccount(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[GetAccount] %s %s", r.Method, r.URL.Path)
+	// TODO: verify account belongs to user
+	_, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	accountID := chi.URLParam(r, "id")
+	if accountID == "" {
+		writeError(w, http.StatusBadRequest, "invalid account id")
+		return
+	}
+
+	account, err := h.container.AccountSvc.GetAccount(r.Context(), accountID)
+	if err != nil {
+		if errors.Is(err, bank_accounts.ErrAccountNotFound) {
+			writeError(w, http.StatusNotFound, "account not found")
+			return
+		}
+
+		log.Printf("Error getting account: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to fetch account")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, account)
+}
+
 // GetTransactions returns all transactions for the authenticated user.
 func (h *AccountHandler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[GetTransactions] %s %s", r.Method, r.URL.Path)
@@ -65,6 +98,33 @@ func (h *AccountHandler) GetTransactions(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		log.Printf("Error getting transactions: %v\n", err)
 		writeError(w, http.StatusInternalServerError, "failed to fetch transactions")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, txns)
+}
+
+// GetTransactionsByAccount returns all transactions for a single linked account.
+func (h *AccountHandler) GetTransactionsByAccount(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[GetTransactionsByAccount] %s %s", r.Method, r.URL.Path)
+	// TODO: verify account belongs to user
+	_, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	accountID := chi.URLParam(r, "id")
+	if accountID == "" {
+		writeError(w, http.StatusBadRequest, "invalid account id")
+		return
+	}
+	// TODO: see if this breaks the frontend response by removing account name from the transaction response
+	txns, err := h.container.TransactionSvc.GetByAccount(r.Context(), accountID)
+	if err != nil {
+		log.Printf("Error getting account transactions: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to fetch account transactions")
 		return
 	}
 
@@ -207,6 +267,68 @@ func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, budget)
+}
+
+// GetBudget returns a single budget for the authenticated user.
+func (h *AccountHandler) GetBudget(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[GetBudget] %s %s", r.Method, r.URL.Path)
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	budgetID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid budget id")
+		return
+	}
+
+	budget, err := h.container.BudgetSvc.GetBudget(r.Context(), userID, budgetID)
+	if err != nil {
+		if errors.Is(err, budgets.ErrBudgetNotFound) {
+			writeError(w, http.StatusNotFound, "budget not found")
+			return
+		}
+
+		log.Printf("Error getting budget: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to fetch budget")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, budget)
+}
+
+// GetTransactionsByBudget returns all transactions applicable to a single budget.
+func (h *AccountHandler) GetTransactionsByBudget(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[GetTransactionsByBudget] %s %s", r.Method, r.URL.Path)
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	budgetID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid budget id")
+		return
+	}
+
+	txns, err := h.container.TransactionSvc.GetByBudgetID(r.Context(), userID, budgetID)
+	if err != nil {
+		if errors.Is(err, transactions.ErrBudgetNotFound) {
+			writeError(w, http.StatusNotFound, "budget not found")
+			return
+		}
+
+		log.Printf("Error getting budget transactions: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to fetch budget transactions")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, txns)
 }
 
 // UpdateBudget partially or fully updates a budget.

@@ -11,12 +11,12 @@ import (
 // Repository defines the interface for bank account data access.
 type Repository interface {
 	CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePlaidItemParams) (sqlcdb.PlaidItem, error)
-	CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankAccount, error)
-	GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error)
+	CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (sqlcdb.BankAccount, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]sqlcdb.BankAccount, error)
+	GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (sqlcdb.GetBankAccountByPlaidAccountIDRow, error)
 	GetPlaidItemByPlaidItemID(ctx context.Context, plaidItemID string) (sqlcdb.PlaidItem, error)
 	UpdateBalance(ctx context.Context, params sqlcdb.UpdateBankAccountBalanceParams) error
-	UpsertBankAccount(ctx context.Context, params sqlcdb.UpsertBankAccountParams) (BankAccount, error)
+	UpsertBankAccount(ctx context.Context, params sqlcdb.UpsertBankAccountParams) (sqlcdb.BankAccount, error)
 	UpdateCursor(ctx context.Context, plaidItemID string, cursor string) error
 	Delete(ctx context.Context, plaidAccountID string) error
 }
@@ -34,40 +34,20 @@ func (r *repository) CreatePlaidItem(ctx context.Context, params sqlcdb.CreatePl
 	return r.q.CreatePlaidItem(ctx, params)
 }
 
-func (r *repository) UpsertBankAccount(ctx context.Context, params sqlcdb.UpsertBankAccountParams) (BankAccount, error) {
-	row, err := r.q.UpsertBankAccount(ctx, params)
-	if err != nil {
-		return BankAccount{}, err
-	}
-	return toBankAccount(row), nil
+func (r *repository) UpsertBankAccount(ctx context.Context, params sqlcdb.UpsertBankAccountParams) (sqlcdb.BankAccount, error) {
+	return r.q.UpsertBankAccount(ctx, params)
 }
 
-func (r *repository) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (BankAccount, error) {
-	row, err := r.q.CreateBankAccount(ctx, params)
-	if err != nil {
-		return BankAccount{}, err
-	}
-	return toBankAccount(row), nil
+func (r *repository) CreateBankAccount(ctx context.Context, params sqlcdb.CreateBankAccountParams) (sqlcdb.BankAccount, error) {
+	return r.q.CreateBankAccount(ctx, params)
 }
 
-func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]BankAccount, error) {
-	rows, err := r.q.GetBankAccountsByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	accounts := make([]BankAccount, len(rows))
-	for i, row := range rows {
-		accounts[i] = toBankAccount(row)
-	}
-	return accounts, nil
+func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]sqlcdb.BankAccount, error) {
+	return r.q.GetBankAccountsByUserID(ctx, userID)
 }
 
-func (r *repository) GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error) {
-	row, err := r.q.GetBankAccountByPlaidAccountID(ctx, plaidAccountID)
-	if err != nil {
-		return BankAccount{}, err
-	}
-	return toBankAccount(row), nil
+func (r *repository) GetByPlaidAccountID(ctx context.Context, plaidAccountID string) (sqlcdb.GetBankAccountByPlaidAccountIDRow, error) {
+	return r.q.GetBankAccountByPlaidAccountID(ctx, plaidAccountID)
 }
 
 func (r *repository) GetPlaidItemByPlaidItemID(ctx context.Context, plaidItemID string) (sqlcdb.PlaidItem, error) {
@@ -76,21 +56,6 @@ func (r *repository) GetPlaidItemByPlaidItemID(ctx context.Context, plaidItemID 
 
 func (r *repository) UpdateBalance(ctx context.Context, params sqlcdb.UpdateBankAccountBalanceParams) error {
 	return r.q.UpdateBankAccountBalance(ctx, params)
-}
-
-func toBankAccount(row sqlcdb.BankAccount) BankAccount {
-	return BankAccount{
-		PlaidItemID:      row.PlaidItemID,
-		PlaidAccountID:   row.PlaidAccountID,
-		AccountName:      row.AccountName,
-		OfficialName:     row.OfficialName,
-		AccountType:      row.AccountType,
-		AccountSubtype:   row.AccountSubtype,
-		CurrentBalance:   row.CurrentBalance,
-		AvailableBalance: row.AvailableBalance,
-		IsoCurrencyCode:  row.IsoCurrencyCode,
-		UpdatedAt:        row.UpdatedAt.Time,
-	}
 }
 
 func (r *repository) UpdateCursor(ctx context.Context, plaidItemID string, cursor string) error {

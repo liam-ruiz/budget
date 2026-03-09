@@ -2,6 +2,7 @@ package budgets
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/google/uuid"
@@ -9,6 +10,8 @@ import (
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
 	"github.com/liam-ruiz/budget/internal/util"
 )
+
+var ErrBudgetNotFound = errors.New("budget not found")
 
 // Service handles budget business logic.
 type Service struct {
@@ -43,6 +46,20 @@ func (s *Service) GetBudgets(ctx context.Context, userID uuid.UUID) ([]BudgetRes
 		out[i] = ToBudgetResponse(b)
 	}
 	return out, nil
+}
+
+// GetBudget returns a single budget owned by the user with recalculated spend.
+func (s *Service) GetBudget(ctx context.Context, userID, id uuid.UUID) (BudgetResponse, error) {
+	b, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return BudgetResponse{}, err
+	}
+	if b.AppUserID != userID {
+		return BudgetResponse{}, ErrBudgetNotFound
+	}
+
+	b = s.recalculateSpend(ctx, b)
+	return ToBudgetResponse(b), nil
 }
 
 // UpdateBudget updates a budget and recalculates its spend.

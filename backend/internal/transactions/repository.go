@@ -5,15 +5,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/liam-ruiz/budget/internal/db/sqlcdb"
-	"github.com/liam-ruiz/budget/internal/util"
+	
 )
 
 // Repository defines the interface for transaction data access.
 type Repository interface {
-	Create(ctx context.Context, params sqlcdb.CreateTransactionParams) (Transaction, error)
-	Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (Transaction, error)
-	GetByAccountID(ctx context.Context, plaidAccountID string) ([]Transaction, error)
-	GetByUserID(ctx context.Context, appUserID uuid.UUID) ([]TransactionWithAccountName, error)
+	Create(ctx context.Context, params sqlcdb.CreateTransactionParams) (sqlcdb.Transaction, error)
+	Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (sqlcdb.Transaction, error)
+	GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.Transaction, error)
+	GetByUserID(ctx context.Context, appUserID uuid.UUID) ([]sqlcdb.GetTransactionsByUserIDRow, error)
+	GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error)
 	Delete(ctx context.Context, plaidTransactionID string) error
 }
 
@@ -26,89 +27,25 @@ func NewRepository(q *sqlcdb.Queries) Repository {
 	return &repository{q: q}
 }
 
-func (r *repository) Create(ctx context.Context, params sqlcdb.CreateTransactionParams) (Transaction, error) {
-	row, err := r.q.CreateTransaction(ctx, params)
-	if err != nil {
-		return Transaction{}, err
-	}
-	return toTransaction(row), nil
+func (r *repository) Create(ctx context.Context, params sqlcdb.CreateTransactionParams) (sqlcdb.Transaction, error) {
+	return r.q.CreateTransaction(ctx, params)
 }
 
-func (r *repository) Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (Transaction, error) {
-	row, err := r.q.UpsertTransaction(ctx, params)
-	if err != nil {
-		return Transaction{}, err
-	}
-	return toTransaction(row), nil
+func (r *repository) Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (sqlcdb.Transaction, error) {
+	return r.q.UpsertTransaction(ctx, params)
 }
 
-func (r *repository) GetByAccountID(ctx context.Context, plaidAccountID string) ([]Transaction, error) {
-	rows, err := r.q.GetTransactionsByAccountID(ctx, plaidAccountID)
-	if err != nil {
-		return nil, err
-	}
-	return toTransactions(rows), nil
+func (r *repository) GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.Transaction, error) {
+	return r.q.GetTransactionsByAccountID(ctx, plaidAccountID)
 }
 
-func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]TransactionWithAccountName, error) {
-	rows, err := r.q.GetTransactionsByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	return toTransactionsWithAccountName(rows), nil
+func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]sqlcdb.GetTransactionsByUserIDRow, error) {
+	return r.q.GetTransactionsByUserID(ctx, userID)
+
 }
 
-func toTransactionWithAccountName(row sqlcdb.GetTransactionsByUserIDRow) TransactionWithAccountName {
-	return TransactionWithAccountName{
-		PlaidTransactionID:      row.PlaidTransactionID,
-		AccountID:               row.PlaidAccountID,
-		Date:                    row.TransactionDate.Time.Format("2006-01-02"),
-		Name:                    row.TransactionName,
-		Amount:                  util.NumericToString(row.Amount),
-		Pending:                 row.Pending,
-		MerchantName:            row.MerchantName.String,
-		LogoUrl:                 row.LogoUrl.String,
-		PersonalFinanceCategory: row.PersonalFinanceCategory.String,
-		DetailedCategory:        row.DetailedCategory.String,
-		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
-		CategoryIconUrl:         row.CategoryIconUrl.String,
-		CreatedAt:               row.CreatedAt.Time,
-		AccountName:             row.AccountName,
-	}
-}
-
-func toTransactionsWithAccountName(rows []sqlcdb.GetTransactionsByUserIDRow) []TransactionWithAccountName {
-	out := make([]TransactionWithAccountName, len(rows))
-	for i, row := range rows {
-		out[i] = toTransactionWithAccountName(row)
-	}
-	return out
-}
-
-func toTransaction(row sqlcdb.Transaction) Transaction {
-	return Transaction{
-		PlaidTransactionID:      row.PlaidTransactionID,
-		AccountID:               row.PlaidAccountID,
-		Date:                    row.TransactionDate.Time.Format("2006-01-02"),
-		Name:                    row.TransactionName,
-		Amount:                  util.NumericToString(row.Amount),
-		Pending:                 row.Pending,
-		MerchantName:            row.MerchantName.String,
-		LogoUrl:                 row.LogoUrl.String,
-		PersonalFinanceCategory: row.PersonalFinanceCategory.String,
-		DetailedCategory:        row.DetailedCategory.String,
-		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
-		CategoryIconUrl:         row.CategoryIconUrl.String,
-		CreatedAt:               row.CreatedAt.Time,
-	}
-}
-
-func toTransactions(rows []sqlcdb.Transaction) []Transaction {
-	out := make([]Transaction, len(rows))
-	for i, row := range rows {
-		out[i] = toTransaction(row)
-	}
-	return out
+func (r *repository) GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error) {
+	return r.q.GetTransactionsByBudgetID(ctx, budgetID)
 }
 
 func (r *repository) Delete(ctx context.Context, plaidTransactionID string) error {

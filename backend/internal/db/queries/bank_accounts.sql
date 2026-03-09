@@ -81,7 +81,10 @@ WHERE
 ORDER BY ba.account_name;
 
 -- name: GetBankAccountByPlaidAccountID :one
-SELECT * FROM bank_accounts WHERE plaid_account_id = $1 LIMIT 1;
+SELECT ba.*, pl.app_user_id
+FROM bank_accounts ba JOIN plaid_items pl 
+ON ba.plaid_item_id = pl.plaid_item_id 
+WHERE ba.plaid_account_id = $1 LIMIT 1;
 
 -- name: UpdateBankAccountBalance :exec
 UPDATE bank_accounts

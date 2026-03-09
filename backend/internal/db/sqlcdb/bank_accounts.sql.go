@@ -90,12 +90,29 @@ func (q *Queries) DeleteBankAccount(ctx context.Context, plaidAccountID string) 
 }
 
 const getBankAccountByPlaidAccountID = `-- name: GetBankAccountByPlaidAccountID :one
-SELECT plaid_account_id, plaid_item_id, account_name, official_name, account_type, account_subtype, current_balance, available_balance, iso_currency_code, updated_at FROM bank_accounts WHERE plaid_account_id = $1 LIMIT 1
+SELECT ba.plaid_account_id, ba.plaid_item_id, ba.account_name, ba.official_name, ba.account_type, ba.account_subtype, ba.current_balance, ba.available_balance, ba.iso_currency_code, ba.updated_at, pl.app_user_id
+FROM bank_accounts ba JOIN plaid_items pl 
+ON ba.plaid_item_id = pl.plaid_item_id 
+WHERE ba.plaid_account_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetBankAccountByPlaidAccountID(ctx context.Context, plaidAccountID string) (BankAccount, error) {
+type GetBankAccountByPlaidAccountIDRow struct {
+	PlaidAccountID   string
+	PlaidItemID      string
+	AccountName      string
+	OfficialName     pgtype.Text
+	AccountType      string
+	AccountSubtype   pgtype.Text
+	CurrentBalance   pgtype.Numeric
+	AvailableBalance pgtype.Numeric
+	IsoCurrencyCode  string
+	UpdatedAt        pgtype.Timestamptz
+	AppUserID        uuid.UUID
+}
+
+func (q *Queries) GetBankAccountByPlaidAccountID(ctx context.Context, plaidAccountID string) (GetBankAccountByPlaidAccountIDRow, error) {
 	row := q.db.QueryRow(ctx, getBankAccountByPlaidAccountID, plaidAccountID)
-	var i BankAccount
+	var i GetBankAccountByPlaidAccountIDRow
 	err := row.Scan(
 		&i.PlaidAccountID,
 		&i.PlaidItemID,
@@ -107,6 +124,7 @@ func (q *Queries) GetBankAccountByPlaidAccountID(ctx context.Context, plaidAccou
 		&i.AvailableBalance,
 		&i.IsoCurrencyCode,
 		&i.UpdatedAt,
+		&i.AppUserID,
 	)
 	return i, err
 }

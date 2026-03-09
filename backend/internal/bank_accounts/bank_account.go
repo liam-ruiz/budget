@@ -32,4 +32,16 @@ type AccountResponse struct {
 	IsoCurrencyCode  string    `json:"iso_currency_code"`
 }
 
+type AccountResponseWithUserID struct {
+	PlaidItemID      string 	`json:"item_id"`
+	PlaidAccountID   string 	`json:"account_id"`
+	AccountName      string    `json:"account_name"`
+	AccountType      string    `json:"account_type"`
+	AccountSubtype   string    `json:"account_subtype,omitempty"`
+	CurrentBalance   string    `json:"current_balance"`
+	AvailableBalance string    `json:"available_balance"`
+	IsoCurrencyCode  string    `json:"iso_currency_code"`
+	UserID string `json:"user_id"`
+}
+
 

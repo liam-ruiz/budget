@@ -1,8 +1,9 @@
 import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api';
 import { PlaidService } from '../../services/plaid';
-import { Account } from '../../models/models';
+import { Account, Transaction } from '../../models/models';
 
 @Component({
     selector: 'app-accounts',
@@ -20,6 +21,11 @@ export class AccountsPage implements OnInit {
     linkError: WritableSignal<string> = signal('');
     deletingAccountId: WritableSignal<string | null> = signal(null);
     deleting: WritableSignal<boolean> = signal(false);
+    selectedAccountId: WritableSignal<string | null> = signal(null);
+    selectedAccount: WritableSignal<Account | null> = signal(null);
+    selectedAccountTransactions: WritableSignal<Transaction[]> = signal<Transaction[]>([]);
+    detailLoading: WritableSignal<boolean> = signal(false);
+    detailError: WritableSignal<string> = signal('');
 
     ngOnInit() {
         this.loadAccounts();
@@ -57,6 +63,50 @@ export class AccountsPage implements OnInit {
         return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     }
 
+    formatTransactionAmount(value: string): string {
+        const amount = parseFloat(value || '0');
+        if (amount < 0) {
+            return `+${this.formatCurrency(String(Math.abs(amount)))}`;
+        }
+
+        return this.formatCurrency(value);
+    }
+
+    parseFloat(value: string): number {
+        return parseFloat(value || '0');
+    }
+
+    openAccountDetail(accountId: string) {
+        this.selectedAccountId.set(accountId);
+        this.selectedAccount.set(null);
+        this.selectedAccountTransactions.set([]);
+        this.detailError.set('');
+        this.detailLoading.set(true);
+
+        forkJoin({
+            account: this.api.getAccount(accountId),
+            transactions: this.api.getAccountTransactions(accountId),
+        }).subscribe({
+            next: ({ account, transactions }) => {
+                this.selectedAccount.set(account);
+                this.selectedAccountTransactions.set(transactions ?? []);
+                this.detailLoading.set(false);
+            },
+            error: () => {
+                this.detailError.set('Failed to load account details.');
+                this.detailLoading.set(false);
+            },
+        });
+    }
+
+    closeAccountDetail() {
+        this.selectedAccountId.set(null);
+        this.selectedAccount.set(null);
+        this.selectedAccountTransactions.set([]);
+        this.detailError.set('');
+        this.detailLoading.set(false);
+    }
+
     confirmDelete(account: Account) {
         this.deletingAccountId.set(account.account_id);
     }
@@ -74,6 +124,9 @@ export class AccountsPage implements OnInit {
             next: () => {
                 this.deleting.set(false);
                 this.deletingAccountId.set(null);
+                if (this.selectedAccountId() === id) {
+                    this.closeAccountDetail();
+                }
                 this.loadAccounts();
             },
             error: () => {

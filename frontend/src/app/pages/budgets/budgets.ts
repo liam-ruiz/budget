@@ -1,8 +1,9 @@
 import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api';
-import { Budget, CreateBudgetRequest, UpdateBudgetRequest } from '../../models/models';
+import { Budget, CreateBudgetRequest, Transaction, UpdateBudgetRequest } from '../../models/models';
 
 // Plaid PFCv2 primary categories
 const PLAID_CATEGORIES = [
@@ -54,6 +55,11 @@ export class BudgetsPage implements OnInit {
 
     // Delete confirmation state
     deletingBudgetId: WritableSignal<string | null> = signal(null);
+    selectedBudgetId: WritableSignal<string | null> = signal(null);
+    selectedBudget: WritableSignal<Budget | null> = signal(null);
+    selectedBudgetTransactions: WritableSignal<Transaction[]> = signal<Transaction[]>([]);
+    detailLoading: WritableSignal<boolean> = signal(false);
+    detailError: WritableSignal<string> = signal('');
 
     form: CreateBudgetRequest = {
         name: '',
@@ -120,6 +126,41 @@ export class BudgetsPage implements OnInit {
         };
     }
 
+    openBudgetDetail(budgetId: string) {
+        if (this.editingBudgetId() === budgetId || this.deletingBudgetId() === budgetId) {
+            return;
+        }
+
+        this.selectedBudgetId.set(budgetId);
+        this.selectedBudget.set(null);
+        this.selectedBudgetTransactions.set([]);
+        this.detailError.set('');
+        this.detailLoading.set(true);
+
+        forkJoin({
+            budget: this.api.getBudget(budgetId),
+            transactions: this.api.getBudgetTransactions(budgetId),
+        }).subscribe({
+            next: ({ budget, transactions }) => {
+                this.selectedBudget.set(budget);
+                this.selectedBudgetTransactions.set(transactions ?? []);
+                this.detailLoading.set(false);
+            },
+            error: () => {
+                this.detailError.set('Failed to load budget details.');
+                this.detailLoading.set(false);
+            },
+        });
+    }
+
+    closeBudgetDetail() {
+        this.selectedBudgetId.set(null);
+        this.selectedBudget.set(null);
+        this.selectedBudgetTransactions.set([]);
+        this.detailError.set('');
+        this.detailLoading.set(false);
+    }
+
     cancelEdit() {
         this.editingBudgetId.set(null);
         this.editForm = {};
@@ -174,6 +215,9 @@ export class BudgetsPage implements OnInit {
         this.api.deleteBudget(id).subscribe({
             next: () => {
                 this.deletingBudgetId.set(null);
+                if (this.selectedBudgetId() === id) {
+                    this.closeBudgetDetail();
+                }
                 this.loadBudgets();
             },
             error: () => {
@@ -194,6 +238,19 @@ export class BudgetsPage implements OnInit {
     formatCurrency(value: string): string {
         const n = parseFloat(value || '0');
         return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
+
+    formatTransactionAmount(value: string): string {
+        const amount = parseFloat(value || '0');
+        if (amount < 0) {
+            return `+${this.formatCurrency(String(Math.abs(amount)))}`;
+        }
+
+        return this.formatCurrency(value);
+    }
+
+    parseFloat(value: string): number {
+        return parseFloat(value || '0');
     }
 
     getSpentPercent(b: Budget): number {

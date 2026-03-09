@@ -161,6 +161,72 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, plaidAccountID
 	return items, nil
 }
 
+const getTransactionsByBudgetID = `-- name: GetTransactionsByBudgetID :many
+SELECT t.plaid_transaction_id, t.plaid_account_id, t.transaction_date, t.transaction_name, t.amount, t.pending, t.merchant_name, t.logo_url, t.personal_finance_category, t.detailed_category, t.category_confidence_level, t.category_icon_url, t.created_at, ba.account_name
+FROM
+    budgets b 
+    JOIN plaid_items pl ON b.app_user_id = pl.app_user_id
+    JOIN bank_accounts ba ON pl.plaid_item_id = ba.plaid_item_id
+    JOIN transactions t ON ba.plaid_account_id = t.plaid_account_id
+WHERE
+    b.id = $1 AND
+    t.transaction_date >= b.start_date AND
+    (b.end_date IS NULL OR t.transaction_date <= b.end_date)
+ORDER BY t.transaction_date DESC
+`
+
+type GetTransactionsByBudgetIDRow struct {
+	PlaidTransactionID      string
+	PlaidAccountID          string
+	TransactionDate         pgtype.Date
+	TransactionName         string
+	Amount                  pgtype.Numeric
+	Pending                 bool
+	MerchantName            pgtype.Text
+	LogoUrl                 pgtype.Text
+	PersonalFinanceCategory pgtype.Text
+	DetailedCategory        pgtype.Text
+	CategoryConfidenceLevel pgtype.Text
+	CategoryIconUrl         pgtype.Text
+	CreatedAt               pgtype.Timestamptz
+	AccountName             string
+}
+
+func (q *Queries) GetTransactionsByBudgetID(ctx context.Context, id uuid.UUID) ([]GetTransactionsByBudgetIDRow, error) {
+	rows, err := q.db.Query(ctx, getTransactionsByBudgetID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTransactionsByBudgetIDRow
+	for rows.Next() {
+		var i GetTransactionsByBudgetIDRow
+		if err := rows.Scan(
+			&i.PlaidTransactionID,
+			&i.PlaidAccountID,
+			&i.TransactionDate,
+			&i.TransactionName,
+			&i.Amount,
+			&i.Pending,
+			&i.MerchantName,
+			&i.LogoUrl,
+			&i.PersonalFinanceCategory,
+			&i.DetailedCategory,
+			&i.CategoryConfidenceLevel,
+			&i.CategoryIconUrl,
+			&i.CreatedAt,
+			&i.AccountName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransactionsByUserID = `-- name: GetTransactionsByUserID :many
 SELECT t.plaid_transaction_id, t.plaid_account_id, t.transaction_date, t.transaction_name, t.amount, t.pending, t.merchant_name, t.logo_url, t.personal_finance_category, t.detailed_category, t.category_confidence_level, t.category_icon_url, t.created_at, ba.account_name
 FROM

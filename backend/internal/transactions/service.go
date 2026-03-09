@@ -17,6 +17,8 @@ import (
 )
 
 var ErrTransactionNotFound = errors.New("transaction not found")
+var ErrAccountNotFound = errors.New("account not found")
+var ErrBudgetNotFound = errors.New("budget not found")
 
 // Service handles transaction business logic.
 type Service struct {
@@ -30,15 +32,40 @@ func NewService(repo Repository) *Service {
 
 // GetByUser returns all transactions across all linked accounts for a user.
 func (s *Service) GetByUser(ctx context.Context, userID uuid.UUID) ([]TransactionWithAccountName, error) {
-	return s.repo.GetByUserID(ctx, userID)
+	DBTransactions, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return toTransactionsWithAccountName(DBTransactions), nil
 }
 
+// GetByAccount returns all transactions for a single account.
+func (s *Service) GetByAccount(ctx context.Context, accountID string) ([]Transaction, error) {
+	DBTransactions, err := s.repo.GetByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toTransactions(DBTransactions), nil
+}
+
+// GetByBudget returns all user transactions applicable to the given budget.
+func (s *Service) GetByBudgetID(ctx context.Context, userID, budgetID uuid.UUID) ([]TransactionWithAccountName, error) {
+	DBTransactions, err := s.repo.GetByBudgetID(ctx, budgetID)
+	if err != nil {
+		return nil, err
+	}
+	return toTransactionsWithAccountNameByBudgetID(DBTransactions), nil
+}
+
+// DeleteTransaction deletes a transaction with the given Plaid transaction ID if it belongs to the user.
 func (s *Service) DeleteTransaction(ctx context.Context, userID uuid.UUID, plaidTransactionID string) error {
 	transactions, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
+	// TODO: optimize this by adding a GetTransactionByPlaidTransactionID query and verifying the transaction belongs to the user in SQL instead of in application code
 	for _, transaction := range transactions {
 		if transaction.PlaidTransactionID == plaidTransactionID {
 			return s.repo.Delete(ctx, plaidTransactionID)
@@ -50,7 +77,11 @@ func (s *Service) DeleteTransaction(ctx context.Context, userID uuid.UUID, plaid
 
 // CreateTransaction persists a single transaction.
 func (s *Service) CreateTransaction(ctx context.Context, params sqlcdb.CreateTransactionParams) (Transaction, error) {
-	return s.repo.Create(ctx, params)
+	dbTxn, err := s.repo.Create(ctx, params)
+	if err != nil {
+		return Transaction{}, err
+	}
+	return toTransaction(dbTxn), nil
 }
 
 // CreateTransactions upserts transactions from a Plaid sync update.
@@ -66,6 +97,7 @@ func (s *Service) CreateTransactions(ctx context.Context, update TransactionUpda
 	}
 
 	var upsertErrors int
+	// TODO: optimize this by doing batch upserts in the repository instead of upserting transactions one by one in application code
 	for _, t := range allTransactions {
 		datetime := t.Datetime
 		var date time.Time
@@ -113,3 +145,84 @@ func (s *Service) CreateTransactions(ctx context.Context, update TransactionUpda
 	log.Printf("[CreateTransactions] successfully upserted %d transactions for item %s", len(allTransactions), update.PlaidItemID)
 	return nil
 }
+
+func toTransactionWithAccountName(row sqlcdb.GetTransactionsByUserIDRow) TransactionWithAccountName {
+	return TransactionWithAccountName{
+		PlaidTransactionID:      row.PlaidTransactionID,
+		AccountID:               row.PlaidAccountID,
+		Date:                    row.TransactionDate.Time.Format("2006-01-02"),
+		Name:                    row.TransactionName,
+		Amount:                  util.NumericToString(row.Amount),
+		Pending:                 row.Pending,
+		MerchantName:            row.MerchantName.String,
+		LogoUrl:                 row.LogoUrl.String,
+		PersonalFinanceCategory: row.PersonalFinanceCategory.String,
+		DetailedCategory:        row.DetailedCategory.String,
+		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
+		CategoryIconUrl:         row.CategoryIconUrl.String,
+		CreatedAt:               row.CreatedAt.Time,
+		AccountName:             row.AccountName,
+	}
+}
+
+func toTransactionWithAccountNameByBudgetID(row sqlcdb.GetTransactionsByBudgetIDRow) TransactionWithAccountName {
+	return TransactionWithAccountName{
+		PlaidTransactionID:      row.PlaidTransactionID,
+		AccountID:               row.PlaidAccountID,
+		Date:                    row.TransactionDate.Time.Format("2006-01-02"),
+		Name:                    row.TransactionName,
+		Amount:                  util.NumericToString(row.Amount),
+		Pending:                 row.Pending,
+		MerchantName:            row.MerchantName.String,
+		LogoUrl:                 row.LogoUrl.String,
+		PersonalFinanceCategory: row.PersonalFinanceCategory.String,
+		DetailedCategory:        row.DetailedCategory.String,
+		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
+		CategoryIconUrl:         row.CategoryIconUrl.String,
+		CreatedAt:               row.CreatedAt.Time,
+		AccountName:             row.AccountName,
+	}
+}
+
+func toTransactionsWithAccountName(rows []sqlcdb.GetTransactionsByUserIDRow) []TransactionWithAccountName {
+	out := make([]TransactionWithAccountName, len(rows))
+	for i, row := range rows {
+		out[i] = toTransactionWithAccountName(row)
+	}
+	return out
+}
+
+func toTransactionsWithAccountNameByBudgetID(rows []sqlcdb.GetTransactionsByBudgetIDRow) []TransactionWithAccountName {
+	out := make([]TransactionWithAccountName, len(rows))
+	for i, row := range rows {
+		out[i] = toTransactionWithAccountNameByBudgetID(row)
+	}
+	return out
+}
+
+func toTransaction(row sqlcdb.Transaction) Transaction {
+	return Transaction{
+		PlaidTransactionID:      row.PlaidTransactionID,
+		AccountID:               row.PlaidAccountID,
+		Date:                    row.TransactionDate.Time.Format("2006-01-02"),
+		Name:                    row.TransactionName,
+		Amount:                  util.NumericToString(row.Amount),
+		Pending:                 row.Pending,
+		MerchantName:            row.MerchantName.String,
+		LogoUrl:                 row.LogoUrl.String,
+		PersonalFinanceCategory: row.PersonalFinanceCategory.String,
+		DetailedCategory:        row.DetailedCategory.String,
+		CategoryConfidenceLevel: row.CategoryConfidenceLevel.String,
+		CategoryIconUrl:         row.CategoryIconUrl.String,
+		CreatedAt:               row.CreatedAt.Time,
+	}
+}
+
+func toTransactions(rows []sqlcdb.Transaction) []Transaction {
+	out := make([]Transaction, len(rows))
+	for i, row := range rows {
+		out[i] = toTransaction(row)
+	}
+	return out
+}
+
