@@ -5,82 +5,122 @@
     </div>
 
     <div class="dashboard-grid">
-        <div class="card">
+        <div class="card dashboard-card">
             <div class="card-header">
                 <h2>Asset Balance</h2>
                 <a routerLink="/accounts" class="card-link">Go to Accounts →</a>
             </div>
-            <div class="asset-balance-total">{{ assetBalance() }}</div>
-            @if (assetAccounts().length === 0) {
-            <div class="empty-state compact-empty-state">
-                <p>No asset accounts yet.</p>
-            </div>
-            } @else {
-            <div class="asset-account-lines">
-                @for (account of assetAccounts(); track account.account_id) {
-                <div class="asset-account-line">
-                    <span class="asset-account-line-name">{{ account.account_name }}</span>
-                    <span class="asset-account-line-balance">{{ formatCurrency(account.available_balance) }}</span>
+            <div class="dashboard-card-body">
+                <div class="asset-balance-total">{{ assetBalance() }}</div>
+                @if (assetAccounts().length === 0) {
+                <div class="empty-state compact-empty-state">
+                    <p>No asset accounts yet.</p>
+                </div>
+                } @else {
+                <div class="asset-account-lines">
+                    @for (account of assetAccounts(); track account.account_id) {
+                    <div class="asset-account-line">
+                        <span class="asset-account-line-name">{{ account.account_name }}</span>
+                        <span class="asset-account-line-balance">{{ formatCurrency(account.available_balance) }}</span>
+                    </div>
+                    }
                 </div>
                 }
             </div>
-            }
         </div>
 
-        <div class="card">
+        <div class="card dashboard-card">
             <div class="card-header">
                 <h2>Active Budgets</h2>
                 <a routerLink="/budgets" class="card-link">View all →</a>
             </div>
-            @if (activeBudgets().length === 0) {
-            <div class="empty-state compact-empty-state">
-                <p>No active budgets right now.</p>
-            </div>
-            } @else {
-            <div class="budget-quick-list">
-                @for (budget of activeBudgets(); track budget.id) {
-                <div class="budget-quick-row">
-                    <span class="budget-quick-name">{{ budget.name }}</span>
-                    <div class="budget-quick-progress" [style.background]="getBudgetCircle(getSpentPercent(budget))">
-                        <div class="budget-quick-progress-inner">
-                            {{ Math.min(getSpentPercent(budget), 999) }}%
+            <div class="dashboard-card-body">
+                @if (activeBudgets().length === 0) {
+                <div class="empty-state compact-empty-state">
+                    <p>No active budgets right now.</p>
+                </div>
+                } @else {
+                <div class="budget-quick-list">
+                    @for (budget of activeBudgets(); track budget.id) {
+                    <div class="budget-quick-row">
+                        <span class="budget-quick-name">{{ budget.name }}</span>
+                        <div class="budget-quick-progress" [style.background]="getBudgetCircle(getSpentPercent(budget))">
+                            <div class="budget-quick-progress-inner">
+                                {{ Math.min(getSpentPercent(budget), 999) }}%
+                            </div>
                         </div>
                     </div>
+                    }
                 </div>
                 }
             </div>
-            }
         </div>
 
-        <div class="card">
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <div>
+                    <h2>Top Monthly Spending</h2>
+                
+                </div>
+        
+            </div>
+            <div class="dashboard-card-body">
+                @if (recentCategoryTotals().length === 0) {
+                <div class="empty-state compact-empty-state">
+                    <p>No spending categories in the past 30 days.</p>
+                </div>
+                } @else {
+                <div class="category-total-list">
+                    @for (total of recentCategoryTotals(); track total.category) {
+                    <div class="category-total-row">
+                        <div class="category-total-top">
+                            <div class="category-total-info">
+                                <span class="category-total-name">{{ formatCategory(total.category) }}</span>
+                            
+                            </div>
+                            <span class="category-total-label">{{ formatSpendingAmount(total.total_amount) }}</span>
+                        </div>
+                        <div class="category-total-bar">
+                            <div class="category-total-bar-fill" [style.width.%]="getCategoryBarWidth(total.total_amount)"></div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+
+        <div class="card dashboard-card">
             <div class="card-header">
                 <h2>Recent Transactions</h2>
                 <a routerLink="/transactions" class="card-link">View all →</a>
             </div>
-            @if (recentTransactions().length === 0) {
-            <div class="empty-state">
-                <p>No transactions yet. Link a bank account to get started.</p>
-            </div>
-            } @else {
-            <div class="txn-list">
-                @for (txn of recentTransactions(); track txn.transaction_id) {
-                <div class="txn-row">
-                    <div class="txn-info">
-                        <span class="txn-name">{{ txn.name }}</span>
-                        @if (txn.personal_finance_category) {
-                        <span class="txn-category">{{ txn.personal_finance_category }}</span>
-                        }
-                        @else {
-                        <span class="txn-category">Misc</span>
-                        }
+            <div class="dashboard-card-body">
+                @if (recentTransactions().length === 0) {
+                <div class="empty-state compact-empty-state">
+                    <p>No transactions yet. Link a bank account to get started.</p>
+                </div>
+                } @else {
+                <div class="txn-list">
+                    @for (txn of recentTransactions(); track txn.transaction_id) {
+                    <div class="txn-row">
+                        <div class="txn-info">
+                            <span class="txn-name">{{ txn.name }}</span>
+                            @if (txn.personal_finance_category) {
+                            <span class="txn-category">{{ txn.personal_finance_category }}</span>
+                            }
+                            @else {
+                            <span class="txn-category">Misc</span>
+                            }
+                        </div>
+                        <div class="txn-amount" [class.incoming]="parseFloat(txn.amount) < 0">
+                            {{ formatActivityAmount(txn.amount) }}
+                        </div>
                     </div>
-                    <div class="txn-amount" [class.negative]="parseFloat(txn.amount) < 0">
-                        {{ formatCurrency(txn.amount) }}
-                    </div>
+                    }
                 </div>
                 }
             </div>
-            }
         </div>
 
     </div>

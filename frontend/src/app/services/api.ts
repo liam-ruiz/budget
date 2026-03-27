@@ -10,6 +10,7 @@ import {
     ExchangeTokenRequest,
     ExchangeTokenResponse,
     Transaction,
+    TransactionCategoryTotal,
     UpdateTransactionCategoryRequest,
     UpdateBudgetRequest,
 } from '../models/models';
@@ -39,6 +40,10 @@ export class ApiService {
     // Transactions
     getTransactions(): Observable<Transaction[]> {
         return this.http.get<Transaction[]>(`${this.base}/transactions`);
+    }
+
+    getTransactionCategoryTotals(): Observable<TransactionCategoryTotal[]> {
+        return this.http.get<TransactionCategoryTotal[]>(`${this.base}/transactions/categories/last-30-days`);
     }
 
     updateTransactionCategory(id: string, payload: UpdateTransactionCategoryRequest): Observable<void> {

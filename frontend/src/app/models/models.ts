@@ -42,6 +42,12 @@ export interface Transaction {
     account_name?: string;
 }
 
+export interface TransactionCategoryTotal {
+    category: string;
+    total_amount: string;
+    transaction_count: number;
+}
+
 export interface UpdateTransactionCategoryRequest {
     category: string;
 }

@@ -62,6 +62,23 @@ func (s *Service) GetByUser(ctx context.Context, userID uuid.UUID) ([]Transactio
 	return toTransactionsWithAccountName(DBTransactions), nil
 }
 
+// GetCategoryTotalsLast30Days returns 30-day category totals for depository and credit-style accounts.
+func (s *Service) GetCategoryTotalsLast30Days(ctx context.Context, userID uuid.UUID) ([]TransactionCategoryTotal, error) {
+	endDate := dateOnly(time.Now().UTC())
+	startDate := dateOnly(endDate.AddDate(0, 0, -29))
+
+	rows, err := s.repo.GetCategoryTotalsByUserID(ctx, sqlcdb.GetTransactionCategoryTotalsByUserIDParams{
+		AppUserID: userID,
+		StartDate: pgtype.Date{Time: startDate, Valid: true},
+		EndDate:   pgtype.Date{Time: endDate, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toTransactionCategoryTotals(rows), nil
+}
+
 // GetByAccount returns all transactions for a single account.
 func (s *Service) GetByAccount(ctx context.Context, accountID string) ([]Transaction, error) {
 	DBTransactions, err := s.repo.GetByAccountID(ctx, accountID)
@@ -222,6 +239,22 @@ func toTransactionsWithAccountName(rows []sqlcdb.GetTransactionsByUserIDRow) []T
 	return out
 }
 
+func toTransactionCategoryTotal(row sqlcdb.GetTransactionCategoryTotalsByUserIDRow) TransactionCategoryTotal {
+	return TransactionCategoryTotal{
+		Category:         row.Category,
+		TotalAmount:      util.NumericToString(row.TotalAmount),
+		TransactionCount: row.TransactionCount,
+	}
+}
+
+func toTransactionCategoryTotals(rows []sqlcdb.GetTransactionCategoryTotalsByUserIDRow) []TransactionCategoryTotal {
+	out := make([]TransactionCategoryTotal, len(rows))
+	for i, row := range rows {
+		out[i] = toTransactionCategoryTotal(row)
+	}
+	return out
+}
+
 func toTransactionsWithAccountNameByBudgetID(rows []sqlcdb.GetTransactionsByBudgetIDRow) []TransactionWithAccountName {
 	out := make([]TransactionWithAccountName, len(rows))
 	for i, row := range rows {
@@ -272,6 +305,10 @@ func toTransactions(rows []sqlcdb.GetTransactionsByAccountIDRow) []Transaction {
 		out[i] = toTransaction(row)
 	}
 	return out
+}
+
+func dateOnly(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func (s *Service) upsertTransactions(ctx context.Context, transactions []plaidlib.Transaction) error {

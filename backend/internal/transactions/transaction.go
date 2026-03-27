@@ -42,3 +42,9 @@ type TransactionWithAccountNameResponse struct {
 	TransactionWithAccountName
 	UserID string `json:"user_id"`
 }
+
+type TransactionCategoryTotal struct {
+	Category         string `json:"category"`
+	TotalAmount      string `json:"total_amount"`
+	TransactionCount int64  `json:"transaction_count"`
+}

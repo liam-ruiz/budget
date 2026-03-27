@@ -104,6 +104,26 @@ func (h *AccountHandler) GetTransactions(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, txns)
 }
 
+// GetTransactionCategoryTotals returns grouped 30-day transaction totals for the authenticated user.
+func (h *AccountHandler) GetTransactionCategoryTotals(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[GetTransactionCategoryTotals] %s %s", r.Method, r.URL.Path)
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	totals, err := h.container.TransactionSvc.GetCategoryTotalsLast30Days(r.Context(), userID)
+	if err != nil {
+		log.Printf("Error getting transaction category totals: %v\n", err)
+		writeError(w, http.StatusInternalServerError, "failed to fetch transaction category totals")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, totals)
+}
+
 // GetTransactionsByAccount returns all transactions for a single linked account.
 func (h *AccountHandler) GetTransactionsByAccount(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[GetTransactionsByAccount] %s %s", r.Method, r.URL.Path)

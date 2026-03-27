@@ -14,6 +14,7 @@ type Repository interface {
 	Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (sqlcdb.Transaction, error)
 	GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.GetTransactionsByAccountIDRow, error)
 	GetByUserID(ctx context.Context, appUserID uuid.UUID) ([]sqlcdb.GetTransactionsByUserIDRow, error)
+	GetCategoryTotalsByUserID(ctx context.Context, params sqlcdb.GetTransactionCategoryTotalsByUserIDParams) ([]sqlcdb.GetTransactionCategoryTotalsByUserIDRow, error)
 	GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error)
 	UpdateCategory(ctx context.Context, params sqlcdb.UpdateTransactionCategoryParams) error
 	Delete(ctx context.Context, plaidTransactionID string) error
@@ -44,6 +45,10 @@ func (r *repository) GetByAccountID(ctx context.Context, plaidAccountID string) 
 func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]sqlcdb.GetTransactionsByUserIDRow, error) {
 	return r.q.GetTransactionsByUserID(ctx, userID)
 
+}
+
+func (r *repository) GetCategoryTotalsByUserID(ctx context.Context, params sqlcdb.GetTransactionCategoryTotalsByUserIDParams) ([]sqlcdb.GetTransactionCategoryTotalsByUserIDRow, error) {
+	return r.q.GetTransactionCategoryTotalsByUserID(ctx, params)
 }
 
 func (r *repository) GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error) {

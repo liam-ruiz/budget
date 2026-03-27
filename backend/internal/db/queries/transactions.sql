@@ -121,6 +121,31 @@ WHERE
     pli.app_user_id = $1
 ORDER BY t.transaction_date DESC;
 
+-- name: GetTransactionCategoryTotalsByUserID :many
+SELECT
+    COALESCE(NULLIF(UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)), ''), 'OTHER')::TEXT AS category,
+    COALESCE(SUM(t.amount), 0)::NUMERIC(12, 2) AS total_amount,
+    COUNT(*)::BIGINT AS transaction_count
+FROM
+    transactions t
+    JOIN bank_accounts ba ON t.plaid_account_id = ba.plaid_account_id
+    JOIN plaid_items pli ON ba.plaid_item_id = pli.plaid_item_id
+WHERE
+    pli.app_user_id = $1
+    AND t.transaction_date >= sqlc.arg(start_date)
+    AND t.transaction_date <= sqlc.arg(end_date)
+    AND UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)) NOT LIKE '%TRANSFER%'
+    AND UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)) NOT LIKE '%LOAN%'
+    AND (
+        (UPPER(ba.account_type) = 'DEPOSITORY' AND UPPER(COALESCE(ba.account_subtype, '')) = 'CHECKING')
+        OR (UPPER(ba.account_type) = 'CREDIT' AND UPPER(COALESCE(ba.account_subtype, '')) = 'CREDIT CARD')
+    )
+GROUP BY
+    1
+ORDER BY
+    total_amount DESC,
+    category ASC;
+
 -- name: CreateTransactions :copyfrom
 INSERT INTO
     transactions (
