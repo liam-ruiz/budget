@@ -43,7 +43,7 @@ VALUES (
         $12
     )
 RETURNING
-    plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at
+    plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at, user_personal_finance_category
 `
 
 type CreateTransactionParams struct {
@@ -91,6 +91,7 @@ func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionPa
 		&i.CategoryConfidenceLevel,
 		&i.CategoryIconUrl,
 		&i.CreatedAt,
+		&i.UserPersonalFinanceCategory,
 	)
 	return i, err
 }
@@ -120,22 +121,51 @@ func (q *Queries) DeleteTransaction(ctx context.Context, plaidTransactionID stri
 }
 
 const getTransactionsByAccountID = `-- name: GetTransactionsByAccountID :many
-SELECT plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at
+SELECT
+    plaid_transaction_id,
+    plaid_account_id,
+    transaction_date,
+    transaction_name,
+    amount,
+    pending,
+    merchant_name,
+    logo_url,
+    COALESCE(user_personal_finance_category, personal_finance_category) AS personal_finance_category,
+    detailed_category,
+    category_confidence_level,
+    category_icon_url,
+    created_at
 FROM transactions
 WHERE
     plaid_account_id = $1
 ORDER BY transaction_date DESC
 `
 
-func (q *Queries) GetTransactionsByAccountID(ctx context.Context, plaidAccountID string) ([]Transaction, error) {
+type GetTransactionsByAccountIDRow struct {
+	PlaidTransactionID      string
+	PlaidAccountID          string
+	TransactionDate         pgtype.Date
+	TransactionName         string
+	Amount                  pgtype.Numeric
+	Pending                 bool
+	MerchantName            pgtype.Text
+	LogoUrl                 pgtype.Text
+	PersonalFinanceCategory pgtype.Text
+	DetailedCategory        pgtype.Text
+	CategoryConfidenceLevel pgtype.Text
+	CategoryIconUrl         pgtype.Text
+	CreatedAt               pgtype.Timestamptz
+}
+
+func (q *Queries) GetTransactionsByAccountID(ctx context.Context, plaidAccountID string) ([]GetTransactionsByAccountIDRow, error) {
 	rows, err := q.db.Query(ctx, getTransactionsByAccountID, plaidAccountID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Transaction
+	var items []GetTransactionsByAccountIDRow
 	for rows.Next() {
-		var i Transaction
+		var i GetTransactionsByAccountIDRow
 		if err := rows.Scan(
 			&i.PlaidTransactionID,
 			&i.PlaidAccountID,
@@ -162,14 +192,33 @@ func (q *Queries) GetTransactionsByAccountID(ctx context.Context, plaidAccountID
 }
 
 const getTransactionsByBudgetID = `-- name: GetTransactionsByBudgetID :many
-SELECT t.plaid_transaction_id, t.plaid_account_id, t.transaction_date, t.transaction_name, t.amount, t.pending, t.merchant_name, t.logo_url, t.personal_finance_category, t.detailed_category, t.category_confidence_level, t.category_icon_url, t.created_at, ba.account_name
+SELECT
+    t.plaid_transaction_id,
+    t.plaid_account_id,
+    t.transaction_date,
+    t.transaction_name,
+    t.amount,
+    t.pending,
+    t.merchant_name,
+    t.logo_url,
+    COALESCE(t.user_personal_finance_category, t.personal_finance_category) AS personal_finance_category,
+    t.detailed_category,
+    t.category_confidence_level,
+    t.category_icon_url,
+    t.created_at,
+    ba.account_name
 FROM
-    budgets b 
+    budgets b
     JOIN plaid_items pl ON b.app_user_id = pl.app_user_id
     JOIN bank_accounts ba ON pl.plaid_item_id = ba.plaid_item_id
     JOIN transactions t ON ba.plaid_account_id = t.plaid_account_id
 WHERE
-    b.id = $1 AND
+    b.id = $1
+    AND (
+        b.category IS NULL
+        OR UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)) = UPPER(b.category)
+    )
+    AND
     t.transaction_date >= b.start_date AND
     (b.end_date IS NULL OR t.transaction_date <= b.end_date)
 ORDER BY t.transaction_date DESC
@@ -228,7 +277,21 @@ func (q *Queries) GetTransactionsByBudgetID(ctx context.Context, id uuid.UUID) (
 }
 
 const getTransactionsByUserID = `-- name: GetTransactionsByUserID :many
-SELECT t.plaid_transaction_id, t.plaid_account_id, t.transaction_date, t.transaction_name, t.amount, t.pending, t.merchant_name, t.logo_url, t.personal_finance_category, t.detailed_category, t.category_confidence_level, t.category_icon_url, t.created_at, ba.account_name
+SELECT
+    t.plaid_transaction_id,
+    t.plaid_account_id,
+    t.transaction_date,
+    t.transaction_name,
+    t.amount,
+    t.pending,
+    t.merchant_name,
+    t.logo_url,
+    COALESCE(t.user_personal_finance_category, t.personal_finance_category) AS personal_finance_category,
+    t.detailed_category,
+    t.category_confidence_level,
+    t.category_icon_url,
+    t.created_at,
+    ba.account_name
 FROM
     transactions t
     JOIN bank_accounts ba ON t.plaid_account_id = ba.plaid_account_id
@@ -290,6 +353,24 @@ func (q *Queries) GetTransactionsByUserID(ctx context.Context, appUserID uuid.UU
 	return items, nil
 }
 
+const updateTransactionCategory = `-- name: UpdateTransactionCategory :exec
+UPDATE transactions
+SET
+    user_personal_finance_category = $2
+WHERE
+    plaid_transaction_id = $1
+`
+
+type UpdateTransactionCategoryParams struct {
+	PlaidTransactionID          string
+	UserPersonalFinanceCategory pgtype.Text
+}
+
+func (q *Queries) UpdateTransactionCategory(ctx context.Context, arg UpdateTransactionCategoryParams) error {
+	_, err := q.db.Exec(ctx, updateTransactionCategory, arg.PlaidTransactionID, arg.UserPersonalFinanceCategory)
+	return err
+}
+
 const upsertTransaction = `-- name: UpsertTransaction :one
 INSERT INTO
     transactions (
@@ -334,7 +415,7 @@ SET
     category_confidence_level = EXCLUDED.category_confidence_level,
     category_icon_url = EXCLUDED.category_icon_url
 RETURNING
-    plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at
+    plaid_transaction_id, plaid_account_id, transaction_date, transaction_name, amount, pending, merchant_name, logo_url, personal_finance_category, detailed_category, category_confidence_level, category_icon_url, created_at, user_personal_finance_category
 `
 
 type UpsertTransactionParams struct {
@@ -382,6 +463,7 @@ func (q *Queries) UpsertTransaction(ctx context.Context, arg UpsertTransactionPa
 		&i.CategoryConfidenceLevel,
 		&i.CategoryIconUrl,
 		&i.CreatedAt,
+		&i.UserPersonalFinanceCategory,
 	)
 	return i, err
 }

@@ -37,6 +37,7 @@ func Run(cfg *config.Config) error {
 		if err := resetDatabase(dbPool); err != nil {
 			return fmt.Errorf("failed to reset database: %w", err)
 		}
+		log.Println("Database reset successfully.")
 	}
 
 	// Build the container

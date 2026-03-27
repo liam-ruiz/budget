@@ -207,7 +207,7 @@ func (s *Service) SyncTransactions(ctx context.Context, plaidItemID string, curs
 	}
 
 	// persist everything
-	err = s.transactionsSvc.CreateTransactions(ctx, transactionsUpdate)
+	err = s.transactionsSvc.SyncTransactions(ctx, transactionsUpdate)
 	if err != nil {
 		log.Printf("[SyncTransactions] failed to persist transactions for item %s: %v", plaidItemID, err)
 		return err

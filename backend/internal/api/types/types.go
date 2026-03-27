@@ -42,6 +42,10 @@ type UpdateBudgetRequest struct {
 	ClearEndDate  bool    `json:"clear_end_date"`
 }
 
+type UpdateTransactionCategoryRequest struct {
+	Category string `json:"category"`
+}
+
 // --- Plaid ---
 
 // ExchangeTokenRequest is the payload for exchanging a Plaid public token.

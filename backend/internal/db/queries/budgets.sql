@@ -59,7 +59,7 @@ FROM
     JOIN plaid_items pi ON ba.plaid_item_id = pi.plaid_item_id
 WHERE
     pi.app_user_id = $1
-    AND UPPER(t.personal_finance_category) = UPPER($2)
+    AND UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)) = UPPER($2)
     AND t.transaction_date >= $3
     AND (
         t.transaction_date <= $4

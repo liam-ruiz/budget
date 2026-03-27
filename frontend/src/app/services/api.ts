@@ -10,6 +10,7 @@ import {
     ExchangeTokenRequest,
     ExchangeTokenResponse,
     Transaction,
+    UpdateTransactionCategoryRequest,
     UpdateBudgetRequest,
 } from '../models/models';
 
@@ -38,6 +39,10 @@ export class ApiService {
     // Transactions
     getTransactions(): Observable<Transaction[]> {
         return this.http.get<Transaction[]>(`${this.base}/transactions`);
+    }
+
+    updateTransactionCategory(id: string, payload: UpdateTransactionCategoryRequest): Observable<void> {
+        return this.http.put<void>(`${this.base}/transactions/${id}/category`, payload);
     }
 
     deleteTransaction(id: string): Observable<void> {

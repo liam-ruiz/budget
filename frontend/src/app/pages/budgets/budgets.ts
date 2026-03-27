@@ -25,6 +25,9 @@ const PLAID_CATEGORIES = [
     'TRANSPORTATION',
     'TRAVEL',
     'RENT_AND_UTILITIES',
+    'PERSONAL',
+    'OTHER',
+
 ];
 
 @Component({

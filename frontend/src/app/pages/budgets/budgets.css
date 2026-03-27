@@ -334,7 +334,10 @@
 
 .detail-modal-backdrop {
     position: fixed;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--sidebar-width);
     background: rgba(3, 8, 18, 0.68);
     backdrop-filter: blur(8px);
     z-index: 40;
@@ -342,13 +345,13 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .detail-modal {
     width: min(980px, 100%);
-    max-height: min(88vh, 960px);
-    overflow: auto;
+    margin: 0 auto;
 }
 
 .detail-modal-header {
@@ -466,13 +469,19 @@
     color: var(--success);
 }
 
+@media (max-width: 900px) {
+    .detail-modal-backdrop {
+        left: 0;
+    }
+}
+
 @media (max-width: 768px) {
     .detail-modal-backdrop {
         padding: 1rem;
     }
 
     .detail-modal {
-        max-height: none;
+        width: 100%;
     }
 
     .detail-modal-grid {

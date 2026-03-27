@@ -2,6 +2,7 @@
 
 /* ── Design Tokens ── */
 :root {
+    --sidebar-width: 240px;
     --bg: #0b0f19;
     --surface: #111827;
     --surface-card: #1a1f2e;

@@ -42,6 +42,10 @@ export interface Transaction {
     account_name?: string;
 }
 
+export interface UpdateTransactionCategoryRequest {
+    category: string;
+}
+
 // ── Budgets ──
 
 export interface Budget {

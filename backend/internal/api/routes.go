@@ -38,6 +38,7 @@ func (h *Handler) Routes() http.Handler {
 		r.Get("/api/accounts/{id}/transactions", h.acctHandler.GetTransactionsByAccount)
 		r.Delete("/api/accounts/{id}", h.acctHandler.DeleteAccount)
 		r.Get("/api/transactions", h.acctHandler.GetTransactions)
+		r.Put("/api/transactions/{id}/category", h.acctHandler.UpdateTransactionCategory)
 		r.Delete("/api/transactions/{id}", h.acctHandler.DeleteTransaction)
 		r.Post("/api/budgets", h.acctHandler.CreateBudget)
 		r.Get("/api/budgets", h.acctHandler.GetBudgets)

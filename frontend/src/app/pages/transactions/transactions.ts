@@ -1,11 +1,34 @@
 import { Component, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api';
 import { Transaction } from '../../models/models';
 
+const PLAID_CATEGORIES = [
+    'INCOME',
+    'LOAN_DISBURSEMENTS',
+    'LOAN_PAYMENTS',
+    'TRANSFER_IN',
+    'TRANSFER_OUT',
+    'BANK_FEES',
+    'ENTERTAINMENT',
+    'FOOD_AND_DRINK',
+    'GENERAL_MERCHANDISE',
+    'HOME_IMPROVEMENT',
+    'MEDICAL',
+    'PERSONAL_CARE',
+    'GENERAL_SERVICES',
+    'GOVERNMENT_AND_NON_PROFIT',
+    'TRANSPORTATION',
+    'TRAVEL',
+    'RENT_AND_UTILITIES',
+    'PERSONAL',
+    'OTHER',
+] as const;
+
 @Component({
     selector: 'app-transactions',
-    imports: [CommonModule],
+    imports: [CommonModule, FormsModule],
     templateUrl: './transactions.html',
     styleUrl: './transactions.css',
 })
@@ -16,6 +39,8 @@ export class TransactionsPage implements OnInit {
     loading: WritableSignal<boolean> = signal(true);
     deletingTransactionId: WritableSignal<string | null> = signal(null);
     deleting: WritableSignal<boolean> = signal(false);
+    updatingCategoryIds: WritableSignal<Record<string, boolean>> = signal<Record<string, boolean>>({});
+    categories = PLAID_CATEGORIES;
 
     ngOnInit() {
         this.loadTransactions();
@@ -58,6 +83,56 @@ export class TransactionsPage implements OnInit {
                 this.deleting.set(false);
                 this.deletingTransactionId.set(null);
             },
+        });
+    }
+
+    updateCategory(transaction: Transaction, category: string) {
+        const normalizedCategory = category.trim().toUpperCase();
+        const previousCategory = transaction.personal_finance_category || 'OTHER';
+
+        if (!normalizedCategory || normalizedCategory === previousCategory) {
+            return;
+        }
+
+        this.setTransactionCategory(transaction.transaction_id, normalizedCategory);
+        this.setUpdatingCategory(transaction.transaction_id, true);
+
+        this.api.updateTransactionCategory(transaction.transaction_id, { category: normalizedCategory }).subscribe({
+            next: () => {
+                this.setUpdatingCategory(transaction.transaction_id, false);
+            },
+            error: () => {
+                this.setTransactionCategory(transaction.transaction_id, previousCategory);
+                this.setUpdatingCategory(transaction.transaction_id, false);
+            },
+        });
+    }
+
+    isUpdatingCategory(transactionId: string): boolean {
+        return !!this.updatingCategoryIds()[transactionId];
+    }
+
+    private setTransactionCategory(transactionId: string, category: string) {
+        this.transactions.update((transactions) =>
+            transactions.map((txn) =>
+                txn.transaction_id === transactionId
+                    ? { ...txn, personal_finance_category: category }
+                    : txn
+            )
+        );
+    }
+
+    private setUpdatingCategory(transactionId: string, updating: boolean) {
+        this.updatingCategoryIds.update((state) => {
+            if (!updating) {
+                const { [transactionId]: _, ...rest } = state;
+                return rest;
+            }
+
+            return {
+                ...state,
+                [transactionId]: true,
+            };
         });
     }
 

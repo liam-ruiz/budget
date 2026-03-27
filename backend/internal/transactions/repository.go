@@ -12,9 +12,10 @@ import (
 type Repository interface {
 	Create(ctx context.Context, params sqlcdb.CreateTransactionParams) (sqlcdb.Transaction, error)
 	Upsert(ctx context.Context, params sqlcdb.UpsertTransactionParams) (sqlcdb.Transaction, error)
-	GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.Transaction, error)
+	GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.GetTransactionsByAccountIDRow, error)
 	GetByUserID(ctx context.Context, appUserID uuid.UUID) ([]sqlcdb.GetTransactionsByUserIDRow, error)
 	GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error)
+	UpdateCategory(ctx context.Context, params sqlcdb.UpdateTransactionCategoryParams) error
 	Delete(ctx context.Context, plaidTransactionID string) error
 }
 
@@ -36,7 +37,7 @@ func (r *repository) Upsert(ctx context.Context, params sqlcdb.UpsertTransaction
 	return r.q.UpsertTransaction(ctx, params)
 }
 
-func (r *repository) GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.Transaction, error) {
+func (r *repository) GetByAccountID(ctx context.Context, plaidAccountID string) ([]sqlcdb.GetTransactionsByAccountIDRow, error) {
 	return r.q.GetTransactionsByAccountID(ctx, plaidAccountID)
 }
 
@@ -47,6 +48,10 @@ func (r *repository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]sqlcd
 
 func (r *repository) GetByBudgetID(ctx context.Context, budgetID uuid.UUID) ([]sqlcdb.GetTransactionsByBudgetIDRow, error) {
 	return r.q.GetTransactionsByBudgetID(ctx, budgetID)
+}
+
+func (r *repository) UpdateCategory(ctx context.Context, params sqlcdb.UpdateTransactionCategoryParams) error {
+	return r.q.UpdateTransactionCategory(ctx, params)
 }
 
 func (r *repository) Delete(ctx context.Context, plaidTransactionID string) error {

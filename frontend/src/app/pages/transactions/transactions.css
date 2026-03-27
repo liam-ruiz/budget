@@ -41,6 +41,37 @@
     gap: 0.375rem;
 }
 
+.txn-category-cell {
+    min-width: 220px;
+}
+
+.txn-category-select-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.txn-category-select {
+    width: 100%;
+    min-width: 180px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    padding: 0.55rem 0.75rem;
+    font: inherit;
+}
+
+.txn-category-select:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.txn-category-saving {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
 .txn-category-icon {
     width: 16px;
     height: 16px;

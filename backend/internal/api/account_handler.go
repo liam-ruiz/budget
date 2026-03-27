@@ -195,6 +195,53 @@ func (h *AccountHandler) DeleteTransaction(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+func (h *AccountHandler) UpdateTransactionCategory(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[UpdateTransactionCategory] %s %s", r.Method, r.URL.Path)
+
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		log.Printf("Error getting user ID: %v\n", err)
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	transactionID := chi.URLParam(r, "id")
+	if transactionID == "" {
+		writeError(w, http.StatusBadRequest, "invalid transaction id")
+		return
+	}
+
+	var req types.UpdateTransactionCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding request body: %v\n", err)
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if strings.TrimSpace(req.Category) == "" {
+		writeError(w, http.StatusBadRequest, "category is required")
+		return
+	}
+
+	err = h.container.TransactionSvc.UpdateCategory(r.Context(), userID, transactionID, req.Category)
+	if err != nil {
+		switch {
+		case errors.Is(err, transactions.ErrTransactionNotFound):
+			writeError(w, http.StatusNotFound, "transaction not found")
+			return
+		case errors.Is(err, transactions.ErrInvalidTransactionCategory):
+			writeError(w, http.StatusBadRequest, "invalid transaction category")
+			return
+		default:
+			log.Printf("Error updating transaction category: %v\n", err)
+			writeError(w, http.StatusInternalServerError, "failed to update transaction category")
+			return
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
 // CreateBudget creates a new budget for the authenticated user.
 func (h *AccountHandler) CreateBudget(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[CreateBudget] %s %s", r.Method, r.URL.Path)

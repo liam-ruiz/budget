@@ -82,77 +82,77 @@
         }
     </div>
     }
+</div>
 
-            @if (selectedAccountId()) {
-    <div class="detail-modal-backdrop" (click)="closeAccountDetail()">
-        <div class="detail-modal card animate-in" (click)="$event.stopPropagation()">
-            <div class="detail-modal-header">
-                <div>
-                    <h2>{{ selectedAccount()?.account_name || 'Account' }}</h2>
-                </div>
-                <button class="close-btn" type="button" (click)="closeAccountDetail()" aria-label="Close details">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                    </svg>
-                </button>
+@if (selectedAccountId()) {
+<div class="detail-modal-backdrop" (click)="closeAccountDetail()">
+    <div class="detail-modal card animate-in" (click)="$event.stopPropagation()">
+        <div class="detail-modal-header">
+            <div>
+                <h2>{{ selectedAccount()?.account_name || 'Account' }}</h2>
+            </div>
+            <button class="close-btn" type="button" (click)="closeAccountDetail()" aria-label="Close details">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                </svg>
+            </button>
+        </div>
+
+        @if (detailLoading()) {
+        <div class="empty-state compact-empty-state">
+            <p>Loading account details…</p>
+        </div>
+        } @else if (detailError()) {
+        <div class="link-error" style="margin-bottom: 0;">{{ detailError() }}</div>
+        } @else if (selectedAccount(); as account) {
+        <div class="detail-modal-grid">
+            <div class="detail-stat">
+                <span class="detail-label">Type</span>
+                <strong>{{ account.account_type }}</strong>
+            </div>
+            <div class="detail-stat">
+                <span class="detail-label">Subtype</span>
+                <strong>{{ account.account_subtype || 'Unspecified' }}</strong>
+            </div>
+            <div class="detail-stat">
+                <span class="detail-label">Current Balance</span>
+                <strong>{{ formatCurrency(account.current_balance) }}</strong>
+            </div>
+            <div class="detail-stat">
+                <span class="detail-label">Available Balance</span>
+                <strong>{{ formatCurrency(account.available_balance) }}</strong>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <h3>Transactions</h3>
+                <span>{{ selectedAccountTransactions().length }}</span>
             </div>
 
-            @if (detailLoading()) {
+            @if (selectedAccountTransactions().length === 0) {
             <div class="empty-state compact-empty-state">
-                <p>Loading account details…</p>
+                <p>No transactions for this account yet.</p>
             </div>
-            } @else if (detailError()) {
-            <div class="link-error" style="margin-bottom: 0;">{{ detailError() }}</div>
-            } @else if (selectedAccount(); as account) {
-            <div class="detail-modal-grid">
-                <div class="detail-stat">
-                    <span class="detail-label">Type</span>
-                    <strong>{{ account.account_type }}</strong>
-                </div>
-                <div class="detail-stat">
-                    <span class="detail-label">Subtype</span>
-                    <strong>{{ account.account_subtype || 'Unspecified' }}</strong>
-                </div>
-                <div class="detail-stat">
-                    <span class="detail-label">Current Balance</span>
-                    <strong>{{ formatCurrency(account.current_balance) }}</strong>
-                </div>
-                <div class="detail-stat">
-                    <span class="detail-label">Available Balance</span>
-                    <strong>{{ formatCurrency(account.available_balance) }}</strong>
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-header">
-                    <h3>Transactions</h3>
-                    <span>{{ selectedAccountTransactions().length }}</span>
-                </div>
-
-                @if (selectedAccountTransactions().length === 0) {
-                <div class="empty-state compact-empty-state">
-                    <p>No transactions for this account yet.</p>
-                </div>
-                } @else {
-                <div class="detail-transaction-list">
-                    @for (txn of selectedAccountTransactions(); track txn.transaction_id) {
-                    <div class="detail-transaction-row">
-                        <div class="detail-transaction-copy">
-                            <strong>{{ txn.name }}</strong>
-                            <span>{{ txn.date }} · {{ txn.personal_finance_category || 'Misc' }}</span>
-                        </div>
-                        <div class="detail-transaction-amount" [class.negative]="parseFloat(txn.amount) < 0">
-                            {{ formatTransactionAmount(txn.amount) }}
-                        </div>
+            } @else {
+            <div class="detail-transaction-list">
+                @for (txn of selectedAccountTransactions(); track txn.transaction_id) {
+                <div class="detail-transaction-row">
+                    <div class="detail-transaction-copy">
+                        <strong>{{ txn.name }}</strong>
+                        <span>{{ txn.date }} · {{ txn.personal_finance_category || 'Misc' }}</span>
                     </div>
-                    }
+                    <div class="detail-transaction-amount" [class.negative]="parseFloat(txn.amount) < 0">
+                        {{ formatTransactionAmount(txn.amount) }}
+                    </div>
                 </div>
                 }
             </div>
             }
         </div>
+        }
     </div>
-    }
 </div>
+}

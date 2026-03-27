@@ -1,0 +1,2 @@
+ALTER TABLE transactions
+DROP COLUMN user_personal_finance_category;

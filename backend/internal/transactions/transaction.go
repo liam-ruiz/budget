@@ -35,7 +35,7 @@ type TransactionWithAccountName struct {
 	CategoryConfidenceLevel string    `json:"category_confidence_level,omitempty"`
 	CategoryIconUrl         string    `json:"category_icon_url,omitempty"`
 	CreatedAt               time.Time `json:"created_at"`
-	AccountName string `json:"account_name"`
+	AccountName             string    `json:"account_name"`
 }
 
 type TransactionWithAccountNameResponse struct {

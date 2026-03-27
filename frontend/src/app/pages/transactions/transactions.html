@@ -49,15 +49,21 @@
                         </div>
                     </td>
                     <td class="txn-account-name">{{ txn.account_name }}</td>
-                    <td>
-                        @if (txn.personal_finance_category) {
-                        <div class="txn-category-row">
-                            @if (txn.category_icon_url) {
-                            <img [src]="txn.category_icon_url" alt="" class="txn-category-icon" />
+                    <td class="txn-category-cell">
+                        <div class="txn-category-select-wrap">
+                            <select class="txn-category-select" [id]="'txn-category-' + txn.transaction_id"
+                                aria-label="Transaction category"
+                                [ngModel]="txn.personal_finance_category || 'OTHER'"
+                                (ngModelChange)="updateCategory(txn, $event)"
+                                [disabled]="isUpdatingCategory(txn.transaction_id)">
+                                @for (category of categories; track category) {
+                                <option [value]="category">{{ formatCategory(category) }}</option>
+                                }
+                            </select>
+                            @if (isUpdatingCategory(txn.transaction_id)) {
+                            <span class="txn-category-saving">Saving…</span>
                             }
-                            <span class="badge badge-accent">{{ formatCategory(txn.personal_finance_category) }}</span>
                         </div>
-                        }
                     </td>
                     <td class="txn-amount" [class.incoming]="parseFloat(txn.amount) < 0">
                         {{ formatAmount(txn.amount) }}

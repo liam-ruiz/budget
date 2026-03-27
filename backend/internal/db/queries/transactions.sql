@@ -78,14 +78,41 @@ RETURNING
     *;
 
 -- name: GetTransactionsByAccountID :many
-SELECT *
+SELECT
+    plaid_transaction_id,
+    plaid_account_id,
+    transaction_date,
+    transaction_name,
+    amount,
+    pending,
+    merchant_name,
+    logo_url,
+    COALESCE(user_personal_finance_category, personal_finance_category) AS personal_finance_category,
+    detailed_category,
+    category_confidence_level,
+    category_icon_url,
+    created_at
 FROM transactions
 WHERE
     plaid_account_id = $1
 ORDER BY transaction_date DESC;
 
 -- name: GetTransactionsByUserID :many
-SELECT t.*, ba.account_name
+SELECT
+    t.plaid_transaction_id,
+    t.plaid_account_id,
+    t.transaction_date,
+    t.transaction_name,
+    t.amount,
+    t.pending,
+    t.merchant_name,
+    t.logo_url,
+    COALESCE(t.user_personal_finance_category, t.personal_finance_category) AS personal_finance_category,
+    t.detailed_category,
+    t.category_confidence_level,
+    t.category_icon_url,
+    t.created_at,
+    ba.account_name
 FROM
     transactions t
     JOIN bank_accounts ba ON t.plaid_account_id = ba.plaid_account_id
@@ -128,15 +155,41 @@ VALUES (
 -- name: DeleteTransaction :exec
 DELETE FROM transactions WHERE plaid_transaction_id = $1;
 
+-- name: UpdateTransactionCategory :exec
+UPDATE transactions
+SET
+    user_personal_finance_category = $2
+WHERE
+    plaid_transaction_id = $1;
+
 -- name: GetTransactionsByBudgetID :many
-SELECT t.*, ba.account_name
+SELECT
+    t.plaid_transaction_id,
+    t.plaid_account_id,
+    t.transaction_date,
+    t.transaction_name,
+    t.amount,
+    t.pending,
+    t.merchant_name,
+    t.logo_url,
+    COALESCE(t.user_personal_finance_category, t.personal_finance_category) AS personal_finance_category,
+    t.detailed_category,
+    t.category_confidence_level,
+    t.category_icon_url,
+    t.created_at,
+    ba.account_name
 FROM
-    budgets b 
+    budgets b
     JOIN plaid_items pl ON b.app_user_id = pl.app_user_id
     JOIN bank_accounts ba ON pl.plaid_item_id = ba.plaid_item_id
     JOIN transactions t ON ba.plaid_account_id = t.plaid_account_id
 WHERE
-    b.id = $1 AND
+    b.id = $1
+    AND (
+        b.category IS NULL
+        OR UPPER(COALESCE(t.user_personal_finance_category, t.personal_finance_category)) = UPPER(b.category)
+    )
+    AND
     t.transaction_date >= b.start_date AND
     (b.end_date IS NULL OR t.transaction_date <= b.end_date)
 ORDER BY t.transaction_date DESC;
