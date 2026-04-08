@@ -1,6 +1,10 @@
 # Budgeting
 
-A local-first budgeting app with a Go backend, Angular frontend, Postgres database, and Plaid account linking. App data is stored in your local Postgres Docker volume unless you reset or remove it.
+A local-first budgeting app with a Go backend, Angular frontend, Postgres database, and Plaid account linking. App data is stored in your local Postgres Docker volume unless you reset or remove it. 
+
+# Important notice!
+
+The onus on securing your data is on you if you choose to use this app. The transaction data and importantly the plaid access tokens that can be used to get data are stored directly on the Postgres volume, so beware if compromised.
 
 ## Quick Start
 
